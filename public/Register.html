@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,23 +12,40 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-attachment: fixed;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  position: relative;
+}
+body::before {
+  content: '';
+  position: fixed; top: -200px; right: -200px;
+  width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,147,251,.3), transparent 70%);
+  filter: blur(60px);
+  animation: floatOrb 12s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-30px,25px) scale(1.1); }
 }
 
 .register-container {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 24px;
+  padding: 44px;
+  box-shadow: 0 24px 48px rgba(0,0,0,.12), 0 8px 16px rgba(102,126,234,.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   animation: slideUp 0.6s ease-out;
 }
 
@@ -68,18 +85,19 @@ body {
 .input-group input {
   width: 100%;
   padding: 15px 20px;
-  border: 2px solid #e1e5e9;
-  border-radius: 12px;
+  border: 1px solid rgba(102,126,234,.18);
+  border-radius: 14px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: #f8f9fa;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(8px);
   padding-right: 50px;
 }
 
 .input-group input:focus {
   outline: none;
   border-color: #667eea;
-  background: white;
+  background: rgba(255,255,255,.85);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
@@ -301,6 +319,18 @@ body {
     font-size: 1.75rem;
   }
 }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>
 </head>
 <body>
@@ -309,19 +339,23 @@ body {
     <h2>Create Account</h2>
     <p>Join us and start booking today</p>
   </div>
-  
+
+  <form id="register-form" autocomplete="on">
   <div class="input-group" id="name-group">
-    <input type="text" id="reg-name" placeholder="Enter your full name">
+    <label for="reg-name" class="visually-hidden">Full name</label>
+    <input type="text" id="reg-name" placeholder="Enter your full name" autocomplete="name">
     <span class="icon">👤</span>
   </div>
-  
+
   <div class="input-group" id="email-group">
-    <input type="email" id="reg-email" placeholder="Enter your email">
+    <label for="reg-email" class="visually-hidden">Email</label>
+    <input type="email" id="reg-email" placeholder="Enter your email" autocomplete="email">
     <span class="icon">📧</span>
   </div>
-  
+
   <div class="input-group" id="password-group">
-    <input type="password" id="reg-password" placeholder="Create a strong password">
+    <label for="reg-password" class="visually-hidden">Password</label>
+    <input type="password" id="reg-password" placeholder="Create a strong password" autocomplete="new-password">
     <span class="icon">🔒</span>
     <div class="password-strength">
       <div class="strength-bar">
@@ -338,31 +372,19 @@ body {
   
   <div class="error" id="register-error"></div>
   <div class="success-message" id="success-message"></div>
-  
-  <button class="register-btn" id="register-btn">Create Account</button>
-  
+
+  <button type="submit" class="register-btn" id="register-btn">Create Account</button>
+  </form>
+
   <div class="login-link">
     <p>Already have an account? <a href="index.html">Sign in here</a></p>
   </div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-  authDomain: "booking-sw.firebaseapp.com",
-  projectId: "booking-sw",
-  storageBucket: "booking-sw.firebasestorage.app",
-  messagingSenderId: "134246403096",
-  appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { auth, db } from "./assets/js/firebase-config.js";
 
 document.addEventListener('DOMContentLoaded', () => {
   const registerBtn = document.getElementById('register-btn');
@@ -404,9 +426,20 @@ document.addEventListener('DOMContentLoaded', () => {
     successEl.classList.remove('show');
   }
 
+  const ALLOWED_DOMAINS = [
+    'icpfertilizer.com',
+    'icpinter.com',
+    'r3lifewellness.com',
+    'icpladda.com',
+    'icpservicing.com',
+    'iconkaset.com'
+  ];
+
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (!emailRegex.test(email)) return false;
+    const domain = email.split('@')[1].toLowerCase();
+    return ALLOWED_DOMAINS.includes(domain);
   }
 
   function validateName(name) {
@@ -467,7 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
     hideMessages();
   });
 
-  registerBtn.addEventListener('click', async () => {
+  const registerForm = document.getElementById('register-form');
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
@@ -486,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!validateEmail(email)) {
-      showError("Please enter a valid email address");
+      showError("กรุณาใช้อีเมลองค์กรเท่านั้น (@icpfertilizer.com, @icpinter.com, @r3lifewellness.com, @icpladda.com, @icpservicing.com, @iconkaset.com)");
       return;
     }
 
@@ -502,14 +537,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
-      await setDoc(doc(db, "users", uid), { 
-        name, 
-        email, 
-        role: "No Access",
+      await setDoc(doc(db, "users", uid), {
+        name,
+        email,
+        role: "Staff",
         createdAt: new Date().toISOString()
       });
       
-      showSuccess("🎉 Account created successfully! Please wait for admin approval before you can log in.");
+      showSuccess("สร้างบัญชีสำเร็จแล้ว! กำลังเปลี่ยนไปหน้าเข้าสู่ระบบ...");
       
       // Clear form
       nameInput.value = '';
@@ -548,12 +583,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Add enter key support
-  document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      registerBtn.click();
-    }
-  });
 });
 </script>
 </body>

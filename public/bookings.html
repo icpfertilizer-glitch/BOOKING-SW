@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 
 <head>
   <meta charset="utf-8" />
@@ -55,7 +56,7 @@
     }
 
     #calendar .fc-daygrid-body>table>tbody>tr {
-      height: 1fr;
+      height: auto;
     }
 
     #calendar .fc-daygrid-day {
@@ -567,6 +568,102 @@
         font-size: .68rem;
       }
     }
+
+    /* ===== Dark Mode Overrides ===== */
+    [data-bs-theme="dark"] .evt {
+      background: linear-gradient(135deg, hsl(var(--evt-h) 50% 18%), hsl(var(--evt-h) 45% 22%));
+      border-color: hsl(var(--evt-h) 40% 35%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 0 rgba(0,0,0,.15);
+    }
+    [data-bs-theme="dark"] .evt.mine {
+      background: linear-gradient(135deg, hsl(var(--evt-h) 45% 20%), hsl(var(--evt-h) 40% 25%));
+    }
+    [data-bs-theme="dark"] .evt.admin {
+      background: linear-gradient(135deg, hsl(0 40% 20%), hsl(0 35% 25%));
+      border-color: hsl(0 35% 40%);
+    }
+    [data-bs-theme="dark"] .evt .time {
+      color: hsl(var(--evt-h) 70% 78%);
+    }
+    [data-bs-theme="dark"] .evt .room {
+      background: hsl(var(--evt-h) 30% 15%);
+      border-color: hsl(var(--evt-h) 30% 40%);
+      color: hsl(var(--evt-h) 60% 80%);
+    }
+    [data-bs-theme="dark"] #calendar .fc-event:hover .evt {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 2px hsl(var(--evt-h) 50% 40% / .5), 0 6px 16px rgba(0,0,0,.25);
+    }
+
+    /* Room status cards */
+    [data-bs-theme="dark"] .room-card {
+      background: linear-gradient(180deg, hsl(var(--room-h) 30% 14% / .9), var(--bs-body-bg));
+      border-color: hsl(var(--room-h) 35% 30% / .9);
+      box-shadow: inset 0 0 0 1px hsl(var(--room-h) 20% 20% / .5), 0 6px 20px rgba(0,0,0,.2);
+    }
+    [data-bs-theme="dark"] .room-card .title .dot {
+      background: hsl(var(--room-h) 60% 55%);
+      box-shadow: 0 0 0 4px hsl(var(--room-h) 30% 20%);
+    }
+    [data-bs-theme="dark"] .room-card .pill {
+      background: hsl(var(--room-h) 30% 15%);
+      border-color: hsl(var(--room-h) 30% 35%);
+      color: hsl(var(--room-h) 50% 75%);
+    }
+    [data-bs-theme="dark"] .status-item {
+      background: hsl(var(--room-h) 25% 14%);
+      border-color: hsl(var(--room-h) 25% 30% / .9);
+    }
+    [data-bs-theme="dark"] .status-item i {
+      color: hsl(var(--room-h) 50% 65%);
+    }
+    [data-bs-theme="dark"] .status-chip {
+      background: hsl(var(--room-h) 20% 12%);
+      border-color: hsl(var(--room-h) 25% 35%);
+      color: hsl(var(--room-h) 60% 80%);
+    }
+    [data-bs-theme="dark"] .status-kind-now .status-item {
+      background: linear-gradient(90deg, hsl(var(--room-h) 35% 18%), hsl(var(--room-h) 20% 14%));
+      border-color: hsl(var(--room-h) 40% 35%);
+    }
+    [data-bs-theme="dark"] .status-kind-prev .status-item {
+      background: linear-gradient(90deg, hsl(var(--room-h) 15% 14%), hsl(var(--room-h) 10% 12%));
+      border-color: hsl(var(--room-h) 12% 28% / .7);
+    }
+    [data-bs-theme="dark"] .status-kind-next .status-item {
+      background: linear-gradient(90deg, hsl(var(--room-h) 30% 16%), hsl(var(--room-h) 20% 14%));
+      border-color: hsl(var(--room-h) 30% 32%);
+    }
+    [data-bs-theme="dark"] .section-label::after {
+      background: linear-gradient(90deg, hsl(var(--room-h) 40% 35%), transparent);
+    }
+    [data-bs-theme="dark"] #statusCard .panel-head {
+      background: linear-gradient(90deg, rgba(13,110,253,.12), rgba(25,135,84,.12));
+    }
+
+    /* Calendar dark tweaks */
+    [data-bs-theme="dark"] .fc .fc-daygrid-day.fc-day-today {
+      background: linear-gradient(180deg, rgba(13,110,253,.15), transparent 70%);
+    }
+    [data-bs-theme="dark"] #calendar .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+      background: rgba(13,110,253,.25);
+      color: #6ea8fe;
+    }
+    [data-bs-theme="dark"] #calendar .fc-daygrid-more-link {
+      background: rgba(13,110,253,.15);
+      border-color: rgba(13,110,253,.4);
+      color: #6ea8fe !important;
+    }
+    [data-bs-theme="dark"] .fc .fc-daygrid-day-frame:hover {
+      box-shadow: inset 0 0 0 2px rgba(13,110,253,.25);
+    }
+
+    /* Readonly input dark */
+    [data-bs-theme="dark"] input.form-control[readonly],
+    [data-bs-theme="dark"] input.form-control.readonly {
+      background-color: #1a1d21 !important;
+      color: #6c757d !important;
+      border-color: #343a40;
+    }
   </style>
 </head>
 
@@ -619,15 +716,16 @@
             <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
           </ul>
         </li>
-        <li>
-          <a href="" class="menu-link"><span>⚙️</span> ตั้งค่า</a>
-        </li>
       </ul>
 
-
-      <div class="menu-section">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled">
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
         <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
       </ul>
 
       <hr class="my-4">
@@ -720,9 +818,7 @@
             <input type="text" id="roomName" class="form-control" readonly>
             <input type="hidden" id="roomId">
           </div>
-          <div class="col-4" id="roomFloorWrap">
-            <!-- ย้ายไปอยู่ขวาของเลือกห้อง -->
-          </div>
+          <!-- roomFloorWrap already exists inside roomSelectWrap above -->
 
           <div class="row g-2">
             <div class="col-6">
@@ -796,25 +892,13 @@
 
   <!-- Firebase + App -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import {
-      getFirestore, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy,
+      collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy,
       serverTimestamp, doc, getDoc, where, getDocs
     } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-    // ---- Firebase ----
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebasestorage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    import { auth, db } from "./assets/js/firebase-config.js";
+    import { escapeHTML } from "./assets/js/utils.js";
 
     // ---- UI helpers ----
     const $ = (s) => document.querySelector(s);
@@ -896,23 +980,12 @@
     function refreshCalendarData() {
       if (!calendar) return;
 
-      console.log('🔄 Refreshing calendar data...');
-      
-      // ✅ แก้ไขปัญหา: ใช้หลายวิธีร่วมกันเพื่อให้แน่ใจว่า calendar อัปเดต
-      // วิธีที่ 1: refetch events ทันที
       calendar.refetchEvents();
-      
-      // วิธีที่ 2: ตรวจสอบอีกครั้งหลังจาก delay
+
+      // Fallback: retry once after delay
       setTimeout(() => {
-        if (calendar) {
-          const currentEvents = calendar.getEvents();
-          console.log('📊 Current events in calendar:', currentEvents.length);
-          
-          // ถ้า refetch ครั้งแรกไม่ได้ผล ให้ลองอีกครั้ง
-          if (currentEvents.length === 0) {
-            console.log('⚠️ No events found, trying again...');
-            calendar.refetchEvents();
-          }
+        if (calendar && calendar.getEvents().length === 0) {
+          calendar.refetchEvents();
         }
       }, 300);
     }
@@ -950,7 +1023,6 @@
         // FullCalendar ส่ง info.end มาเป็นวันแรกของสัปดาห์ถัดไป เราจึงใช้ '<' เพื่อไม่ให้รวมวันนั้นเข้ามา
         const endStr = ymd(info.end);
         
-        console.log(`[Calendar] กำลังดึงข้อมูล (fetch) ช่วง: ${startStr} ถึง ${endStr}`);
 
         // สร้าง query เพื่อดึงข้อมูลในช่วงวันที่ที่ต้องการ
         const qRef = query(
@@ -963,8 +1035,6 @@
         const snap = await getDocs(qRef);
         const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        console.log(`[Calendar] ดึงข้อมูลสำเร็จ: ${docs.length} รายการ`);
-        
         // ส่งข้อมูลที่แปลงแล้วกลับไปให้ FullCalendar
         successCallback(toEvents(docs));
 
@@ -975,35 +1045,6 @@
       }
     }
 
-    // function subscribeCalendarRange(info, successCallback, failureCallback) {
-    //   // ✅ แก้ไขปัญหา: ใช้ range ที่แน่นอนตาม FullCalendar โดยไม่ขยาย
-    //   // เพื่อป้องกันการแสดงการจองข้ามเดือน
-    //   const startStr = ymd(info.start);
-    //   const endStr = ymd(new Date(info.end.getTime() - 24 * 60 * 60 * 1000)); // exclusive
-
-    //   // ✅ เก็บ range ปัจจุบันเพื่อใช้ในการ refresh
-    //   window.currentCalendarRange = { startStr, endStr };
-
-    //   if (unsubCal) { unsubCal(); unsubCal = null; }
-
-    //   const qRef = query(
-    //     meetingsRef,
-    //     where('date', '>=', startStr),
-    //     where('date', '<=', endStr),
-    //     orderBy('date')
-    //   );
-
-    //   unsubCal = onSnapshot(qRef, snap => {
-    //     const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    //     console.log('📅 Calendar data loaded:', docs.length, 'meetings for range', startStr, 'to', endStr);
-    //     // ✅ ไม่ต้อง filter เพิ่ม เพราะ query แล้วแน่นอน
-    //     successCallback(toEvents(docs));
-    //   }, err => {
-    //     console.error('Calendar range error:', err);
-    //     if (failureCallback) failureCallback(err);
-    //     successCallback([]);
-    //   });
-    // }
 
     function renderEventContent(arg) {
       const m = arg.event.extendedProps.meeting;
@@ -1033,7 +1074,7 @@
 
       const r = document.createElement('span');
       r.className = 'room';
-      r.innerHTML = `${displayName}`;
+      r.textContent = displayName;
 
       root.appendChild(t);
       root.appendChild(r);
@@ -1126,30 +1167,36 @@
 
     // ================== Booking Modal Logic & สิทธิ์ ==================
     let editingMeeting = null; // เก็บรายการที่กำลังแก้ไขเพื่อเช็คสิทธิ์
+    let isViewOnlyMode = false; // state variable for view-only mode
 
     const modalEl = document.getElementById('bookingModal');
-    // eslint-disable-next-line no-undef
-    const modal = new bootstrap.Modal(modalEl);
+    let modal;
+    document.addEventListener('DOMContentLoaded', () => {
+      modal = new bootstrap.Modal(modalEl);
+    });
 
     // Clear state เมื่อ modal ถูกปิด
     modalEl.addEventListener('hidden.bs.modal', function () {
       // Clear form
       $('#bookingId').value = '';
       editingMeeting = null;
+      isViewOnlyMode = false;
       bookingForm.reset();
       
       // ✅ ซ่อนข้อความแจ้งเตือนโหมด view
       const viewAlert = $('#viewModeAlert');
       if (viewAlert) viewAlert.classList.add('d-none');
       
-      // ✅ รีเซ็ต readonly state
+      // รีเซ็ต readonly/disabled state
       $('#bookerName').readOnly = false;
-      $('#roomName').readOnly = false; 
+      $('#roomName').readOnly = false;
       $('#bookingDate').readOnly = false;
       $('#title').readOnly = false;
       $('#contact').readOnly = false;
       $('#startTime').disabled = false;
       $('#endTime').disabled = false;
+      const roomSelectEl = $('#roomSelect');
+      if (roomSelectEl) roomSelectEl.disabled = false;
       
       // ✅ แสดงปุ่มบันทึกกลับมา
       const submitBtn = bookingForm.querySelector('button[type="submit"]');
@@ -1384,131 +1431,6 @@
       }
     }
 
-    // ฟังก์ชันเก่า (ย้ายมาจากด้านบน)
-    async function fillTimeSelectsOld(roomId, dateStr, preStart = null, preEnd = null) {
-      // Get fresh references to DOM elements every time
-      const startSel = document.getElementById('startTime');
-      const endSel = document.getElementById('endTime');
-
-
-
-      // Force clear และ refresh DOM
-      startSel.innerHTML = '';
-      endSel.innerHTML = '';
-      startSel.onchange = null; // Clear event listener
-
-      // Force DOM refresh
-      startSel.style.display = 'none';
-      endSel.style.display = 'none';
-
-      // Wait for DOM to update
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      startSel.style.display = '';
-      endSel.style.display = '';
-
-      const submitBtn = bookingForm.querySelector('button[type="submit"]');
-      if (!roomId || !dateStr) { if (submitBtn) submitBtn.disabled = true; return; }
-
-      const DAY_START = 8 * 60;
-      const DAY_END = 19 * 60;
-      const todayStr = toYmd(new Date());
-      // ดึง booking ID ปัจจุบัน (สำหรับโหมดแก้ไข)
-      const currentBookingId = document.getElementById('bookingId')?.value || null;
-
-      const taken = await fetchDayMeetings(dateStr, roomId, currentBookingId);
-
-
-      // ==== เตรียม start slots (ทุก 30 นาที) ====
-      let startMin = DAY_START;
-      if (dateStr === todayStr && !preStart) {
-        const roundedNow = roundUpToNext30(toMin(nowHM()));
-        startMin = Math.max(DAY_START, Math.min(roundedNow, DAY_END - 30));
-      }
-
-      let startCandidates = [];
-      for (let m = DAY_START; m <= DAY_END - 30; m += 30) startCandidates.push(minToHH(m));
-      if (dateStr === todayStr && !preStart) {
-        startCandidates = startCandidates.filter(t => toMin(t) >= startMin);
-      }
-
-      // สร้าง option สำหรับ start time
-      for (const s of startCandidates) {
-        // ตรวจสอบว่าช่วงเวลานี้ถูกจองแล้วหรือไม่
-        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + 30), m.start, m.end));
-
-
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (isBusy) {
-          opt.disabled = true;
-          opt.style.background = '#888';
-          opt.style.color = '#fff';
-        }
-        startSel.appendChild(opt);
-      }
-      // เลือกค่า default
-
-      if (preStart && startCandidates.includes(preStart)) {
-        startSel.value = preStart;
-
-      } else {
-        // เลือก option แรกที่ไม่ disabled
-        const firstAvailable = Array.from(startSel.options).find(o => !o.disabled);
-        if (firstAvailable) {
-          startSel.value = firstAvailable.value;
-
-        } else {
-
-        }
-      }
-
-      // ==== end slots (ทุก 30 นาที, > start และ ≤ 19:00) ====
-      function rebuildEnds() {
-
-        endSel.innerHTML = '';
-        const sVal = startSel.value;
-        if (!sVal) { if (submitBtn) submitBtn.disabled = true; return; }
-        const sMin = toMin(sVal);
-        for (let m = sMin + 30; m <= DAY_END; m += 30) {
-          const e = minToHH(m);
-          // ตรวจสอบว่าช่วงเวลานี้ถูกจองแล้วหรือไม่
-          const isBusy = taken.some(mtg => isOverlapping(sVal, e, mtg.start, mtg.end));
-
-
-
-          const opt = document.createElement('option');
-          opt.value = e;
-          opt.textContent = e;
-          if (isBusy) {
-            opt.disabled = true;
-            opt.style.background = '#888';
-            opt.style.color = '#fff';
-          }
-          endSel.appendChild(opt);
-        }
-        // เลือกค่า default
-        const firstAvailable = Array.from(endSel.options).find(o => !o.disabled);
-        if (firstAvailable) endSel.value = firstAvailable.value;
-        if (submitBtn) submitBtn.disabled = endSel.options.length === 0 || !firstAvailable;
-      }
-
-      // ลบ event listener เก่าก่อน (ถ้ามี) และสร้าง function ใหม่
-      startSel.onchange = null;
-      startSel.onchange = () => rebuildEnds();
-
-      // เรียก rebuildEnds ครั้งแรก
-      rebuildEnds();
-
-      // ตั้งค่า preEnd หลังจาก rebuildEnds เสร็จ (สำหรับโหมดแก้ไข)
-      if (preEnd) {
-        const targetOption = Array.from(endSel.options).find(o => o.value === preEnd);
-        if (targetOption && !targetOption.disabled) {
-          endSel.value = preEnd;
-        }
-      }
-    }
 
     function openBookingModal({ mode, roomId = null, roomName = null, start = null, end = null, date = null, meeting = null } = {}) {
       // Force recreate select elements
@@ -1606,20 +1528,36 @@
       if (mode === 'edit') {
         const isOwner = currentUser && meeting && currentUser.user.uid === meeting.userId;
         const isAdmin = currentUser && currentUser.role === 'admin';
-        if (!isOwner && !isAdmin) { showPopup('คุณไม่มีสิทธิ์แก้ไขรายการนี้'); return; } // ✅ กันเปิดโมดอล
+        if (!isOwner && !isAdmin) { showPopup('คุณไม่มีสิทธิ์แก้ไขรายการนี้'); return; }
 
-        editingMeeting = meeting; // เก็บไว้เช็คตอนบันทึก/ลบ
+        editingMeeting = meeting;
 
-        roomSelectWrap.classList.add('d-none');
-        roomNameWrap.classList.remove('d-none');
-        $('#roomId').value = meeting.roomId;
-        $('#roomName').value = meeting.roomName;
+        // ใช้ dropdown เลือกห้องแทน text input (เหมือน create-quick)
+        roomNameWrap.classList.add('d-none');
+        roomSelectWrap.classList.remove('d-none');
+        fillRoomDropdown(roomSelect);
+
+        // ตั้งค่าห้องเดิมเป็นค่าเริ่มต้น
+        if (meeting.roomId && Array.from(roomSelect.options).some(o => o.value === meeting.roomId)) {
+          roomSelect.value = meeting.roomId;
+        }
+
+        // อัปเดตฟิลด์ชั้นตามห้องที่เลือก
+        const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+        if (selectedOption && selectedOption.getAttribute('data-floor')) {
+          $('#roomFloorWrap').classList.remove('d-none');
+          $('#roomFloor').value = selectedOption.getAttribute('data-floor');
+        } else {
+          $('#roomFloorWrap').classList.add('d-none');
+          $('#roomFloor').value = '';
+        }
+
         $('#bookingDate').value = meeting.date;
         $('#title').value = meeting.title || '';
         $('#contact').value = meeting.contact || '';
         bookerEl.value = meeting.bookerName || meeting.userName || currentUser?.name || '';
 
-        // แสดงชื่อผู้ดำเนินการจากข้อมูลการจองเดิม (คนที่จองจริงๆ)
+        // แสดงชื่อผู้ดำเนินการจากข้อมูลการจองเดิม
         const operatorName = meeting.userName || 'ไม่ระบุ';
         const opNameEl = document.getElementById('loginOperatorName');
         if (opNameEl) opNameEl.textContent = operatorName;
@@ -1633,39 +1571,64 @@
             await deleteDoc(doc(db, 'meetings', meeting.id));
             showToast('ลบการจองแล้ว');
             modal.hide();
-
-            // ✅ Force refresh calendar ทั้งหมด และ status panel
-            // เพิ่ม delay เพื่อให้ Firebase sync เสร็จก่อน
             setTimeout(() => {
               refreshCalendarData();
               renderStatusPanelByRoom();
             }, 200);
           }
-          catch (e) { console.error(e); showPopup('ลบไม่สำเร็จ'); }
+          catch (e) { showPopup('ลบไม่สำเร็จ'); }
         };
 
         $('#modalTitle').textContent = 'แก้ไขการจอง';
 
-        fillTimeSelects(meeting.roomId, meeting.date, meeting.start, meeting.end);
-        $('#bookingDate').onchange = () => fillTimeSelects(meeting.roomId, $('#bookingDate').value);
+        // ใช้ fillTimeSelectsForEdit พร้อม excludeId เพื่อไม่ให้ตัวเองซ้อน
+        fillTimeSelectsForEdit(roomSelect.value, meeting.date, meeting.start, meeting.end, meeting.id);
+
+        roomSelect.onchange = () => {
+          fillTimeSelectsForEdit(roomSelect.value, $('#bookingDate').value, null, null, meeting.id);
+          const opt = roomSelect.options[roomSelect.selectedIndex];
+          if (opt && opt.getAttribute('data-floor')) {
+            $('#roomFloorWrap').classList.remove('d-none');
+            $('#roomFloor').value = opt.getAttribute('data-floor');
+          } else {
+            $('#roomFloorWrap').classList.add('d-none');
+            $('#roomFloor').value = '';
+          }
+        };
+        $('#bookingDate').onchange = () => fillTimeSelectsForEdit(roomSelect.value, $('#bookingDate').value, null, null, meeting.id);
+
         modal.show();
         return;
       }
 
       if (mode === 'view') {
-        // ✅ โหมดดูอย่างเดียวสำหรับผู้ที่ไม่มีสิทธิ์แก้ไข
-        editingMeeting = meeting; // เก็บไว้เพื่อป้องกันการบันทึก
+        // โหมดดูอย่างเดียวสำหรับผู้ที่ไม่มีสิทธิ์แก้ไข
+        isViewOnlyMode = true;
+        editingMeeting = meeting;
 
-        roomSelectWrap.classList.add('d-none');
-        roomNameWrap.classList.remove('d-none');
-        $('#roomId').value = meeting.roomId;
-        $('#roomName').value = meeting.roomName;
+        // แสดง dropdown ห้องแต่ disabled
+        roomNameWrap.classList.add('d-none');
+        roomSelectWrap.classList.remove('d-none');
+        fillRoomDropdown(roomSelect);
+        if (meeting.roomId) roomSelect.value = meeting.roomId;
+        roomSelect.disabled = true;
+
+        // อัปเดตฟิลด์ชั้น
+        const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+        if (selectedOption && selectedOption.getAttribute('data-floor')) {
+          $('#roomFloorWrap').classList.remove('d-none');
+          $('#roomFloor').value = selectedOption.getAttribute('data-floor');
+        } else {
+          $('#roomFloorWrap').classList.add('d-none');
+          $('#roomFloor').value = '';
+        }
+
         $('#bookingDate').value = meeting.date;
         $('#title').value = meeting.title || '';
         $('#contact').value = meeting.contact || '';
         bookerEl.value = meeting.bookerName || meeting.userName || currentUser?.name || '';
 
-        // แสดงชื่อผู้ดำเนินการจากข้อมูลการจองเดิม (คนที่จองจริงๆ)
+        // แสดงชื่อผู้ดำเนินการจากข้อมูลการจองเดิม
         const operatorName = meeting.userName || 'ไม่ระบุ';
         const opNameEl = document.getElementById('loginOperatorName');
         if (opNameEl) opNameEl.textContent = operatorName;
@@ -1676,7 +1639,6 @@
 
         // ทำให้ทุก form element เป็น readonly
         $('#bookerName').readOnly = true;
-        $('#roomName').readOnly = true; 
         $('#bookingDate').readOnly = true;
         $('#title').readOnly = true;
         $('#contact').readOnly = true;
@@ -1706,10 +1668,9 @@
     bookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // ✅ ป้องกันการบันทึกในโหมด view
-      const modalTitle = $('#modalTitle').textContent;
-      if (modalTitle && modalTitle.includes('ดูอย่างเดียว')) {
-        showPopup('คุณไม่สามารถแก้ไขการจองนี้ได้'); 
+      // ป้องกันการบันทึกในโหมด view
+      if (isViewOnlyMode) {
+        showPopup('คุณไม่สามารถแก้ไขการจองนี้ได้');
         return;
       }
       
@@ -1725,7 +1686,6 @@
         const selectedOption = sel.options[sel.selectedIndex];
         roomId = sel.value;
         roomName = selectedOption.getAttribute('data-room-name') || selectedOption.textContent || 'ห้องประชุม';
-        console.log('Selected room:', roomId, 'roomName:', roomName);
       }
 
       const dateStr = $('#bookingDate').value;
@@ -1757,31 +1717,31 @@
       try {
         const payload = {
           roomId, roomName, date: dateStr, start, end, title, contact,
-          userId: currentUser.user.uid,
-          userName: currentUser.name,
           bookerName: booker || currentUser.name,
           updatedAt: serverTimestamp()
         };
 
         if (id) {
+          // Preserve original userId/userName when admin edits someone else's booking
+          if (editingMeeting) {
+            payload.userId = editingMeeting.userId;
+            payload.userName = editingMeeting.userName;
+          } else {
+            payload.userId = currentUser.user.uid;
+            payload.userName = currentUser.name;
+          }
           await updateDoc(doc(db, 'meetings', id), payload);
           showToast('อัปเดตการจองแล้ว');
         } else {
+          payload.userId = currentUser.user.uid;
+          payload.userName = currentUser.name;
           await addDoc(meetingsRef, { ...payload, createdAt: serverTimestamp() });
           showToast('จองสำเร็จ');
         }
         modal.hide();
 
-        // ✅ การแก้ไขปัญหา: ไม่ต้องพึ่ง manual refresh เยอะ
-        // ให้ onSnapshot ทำงานเป็นหลัก แต่มี fallback เผื่อไว้
-        console.log('✅ Booking saved, waiting for realtime update...');
-        
-        // Fallback refresh หากไม่เห็นการเปลี่ยนแปลงภายใน 1 วินาที
+        // Fallback refresh
         setTimeout(() => {
-          const events = calendar ? calendar.getEvents() : [];
-          console.log('� Events check after booking:', events.length);
-          
-          // ถ้าไม่เห็นการจองใหม่ ให้ force refresh
           refreshCalendarData();
           renderStatusPanelByRoom();
         }, 1000);
@@ -1849,22 +1809,40 @@
           const metaTxt = [capTxt].filter(Boolean).join(' • ');
           const metaHtml = metaTxt ? ` <small class="text-secondary">(${metaTxt})</small>` : '';
 
-          // แสดงชื่อห้องพร้อม location ในวงเล็บสีเทา พร้อมคำว่า "ชั้น"
-          const locationHtml = grp.floor ? ` <small class="text-secondary">(ชั้น ${grp.floor})</small>` : '';
-          const displayName = `${grp.name}${locationHtml}`;
-
           const isBusy = (grp.now && grp.now.length > 0);
 
           const head = document.createElement('div');
           head.className = 'title';
-          head.innerHTML = `
-            <span class="dot"></span>
-            <span>${displayName}${metaHtml}</span>
-            <span class="pill"><i class="bi bi-calendar3"></i> วันนี้</span>
-            <span class="live-pill ${isBusy ? 'busy' : 'free'}">
-              <span class="beacon"></span>${isBusy ? 'ไม่ว่าง' : 'ว่างตอนนี้'}
-            </span>
-          `;
+
+          const dotSpan = document.createElement('span');
+          dotSpan.className = 'dot';
+          head.appendChild(dotSpan);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = grp.name;
+          if (grp.floor) {
+            const floorSmall = document.createElement('small');
+            floorSmall.className = 'text-secondary';
+            floorSmall.textContent = ` (ชั้น ${grp.floor})`;
+            nameSpan.appendChild(floorSmall);
+          }
+          if (metaTxt) {
+            const metaSmall = document.createElement('small');
+            metaSmall.className = 'text-secondary';
+            metaSmall.textContent = ` (${metaTxt})`;
+            nameSpan.appendChild(metaSmall);
+          }
+          head.appendChild(nameSpan);
+
+          const pillSpan = document.createElement('span');
+          pillSpan.className = 'pill';
+          pillSpan.innerHTML = '<i class="bi bi-calendar3"></i> วันนี้';
+          head.appendChild(pillSpan);
+
+          const liveSpan = document.createElement('span');
+          liveSpan.className = `live-pill ${isBusy ? 'busy' : 'free'}`;
+          liveSpan.innerHTML = `<span class="beacon"></span>${isBusy ? 'ไม่ว่าง' : 'ว่างตอนนี้'}`;
+          head.appendChild(liveSpan);
           card.appendChild(head);
 
           const mk = (lbl, arr, kind) => {
@@ -1912,15 +1890,17 @@
         });
     }
 
+    let statusIntervalId = null;
     function subscribeTodayStatus() {
       const todayStr = toYmd(new Date());
       if (unsubToday) { unsubToday(); unsubToday = null; }
+      if (statusIntervalId) { clearInterval(statusIntervalId); statusIntervalId = null; }
       const qToday = query(meetingsRef, where('date', '==', todayStr));
       unsubToday = onSnapshot(qToday, snap => {
         todayDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderStatusPanelByRoom();
       }, _err => { todayDocs = []; renderStatusPanelByRoom(); });
-      setInterval(renderStatusPanelByRoom, 10000);
+      statusIntervalId = setInterval(renderStatusPanelByRoom, 10000);
     }
 
     // ---- Init ----

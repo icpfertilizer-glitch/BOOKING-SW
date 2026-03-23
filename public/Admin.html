@@ -1,12 +1,14 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Panel • การจัดการสิทธิ์</title>
 
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap CSS + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   
   <!-- ห้ามแก้ไข -->
   <link href="assets/css/styles.css" rel="stylesheet" />
@@ -69,15 +71,16 @@
         <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
         </ul>
     </li>
-    <li>
-        <a href="" class="menu-link"><span>⚙️</span> ตั้งค่า</a>
-    </li>
     </ul>
 
-
-      <div class="menu-section">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled">
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
   <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
       </ul>
 
       <hr class="my-4">
@@ -95,6 +98,42 @@
   <!-- Main Content -->
   <main class="container">
     <h2 class="mb-3">การจัดการสิทธิ์ผู้ใช้</h2>
+
+    <!-- ฟอร์มเพิ่มผู้ใช้ใหม่ -->
+    <div class="card p-3 mb-4">
+      <h5 class="fw-bold mb-3"><i class="bi bi-person-plus"></i> เพิ่มผู้ใช้ใหม่</h5>
+      <form id="addUserForm" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+          <input type="text" id="newUserName" class="form-control" required />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">อีเมล <span class="text-danger">*</span></label>
+          <input type="email" id="newUserEmail" class="form-control" placeholder="name@icpfertilizer.com" required />
+          <div class="form-text text-secondary" style="font-size:.78rem;">เฉพาะอีเมลองค์กรเท่านั้น</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">รหัสผ่าน <span class="text-danger">*</span></label>
+          <input type="password" id="newUserPassword" class="form-control" minlength="6" required />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">สิทธิ์</label>
+          <select id="newUserRole" class="form-select">
+            <option value="Staff" selected>Staff</option>
+            <option value="Manager">Manager</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-plus-lg"></i> เพิ่ม
+          </button>
+        </div>
+      </form>
+      <div id="addUserError" class="text-danger small mt-2" style="display:none;"></div>
+      <div id="addUserSuccess" class="text-success small mt-2" style="display:none;"></div>
+    </div>
+
     <div class="card">
       <table id="usersTable" class="table table-hover table-striped align-middle">
         <thead class="table-light">
@@ -102,69 +141,168 @@
             <th>ชื่อผู้ใช้</th>
             <th>อีเมล</th>
             <th>Role</th>
+            <th style="width:140px;">จัดการ</th>
           </tr>
         </thead>
         <tbody id="user-list">
           <tr>
-            <td colspan="3" class="text-center py-4">กำลังโหลดข้อมูลผู้ใช้...</td>
+            <td colspan="4" class="text-center py-4">กำลังโหลดข้อมูลผู้ใช้...</td>
           </tr>
         </tbody>
       </table>
     </div>
   </main>
 
+  <!-- Edit User Modal -->
+  <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background:var(--glass-bg-strong);backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--radius-lg);">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold" id="editUserModalLabel"><i class="bi bi-pencil-square"></i> แก้ไขผู้ใช้</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editUid" />
+          <div class="mb-3">
+            <label class="form-label">ชื่อ-นามสกุล</label>
+            <input type="text" id="editName" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">อีเมล</label>
+            <input type="email" id="editEmail" class="form-control" disabled />
+            <div class="form-text text-secondary">ไม่สามารถแก้ไขอีเมลได้</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">สิทธิ์</label>
+            <select id="editRole" class="form-select">
+              <option value="Admin">Admin</option>
+              <option value="Manager">Manager</option>
+              <option value="Staff">Staff</option>
+              <option value="No Access">No Access</option>
+            </select>
+          </div>
+          <div id="editUserError" class="text-danger small" style="display:none;"></div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" id="btnSaveEdit" class="btn btn-primary"><i class="bi bi-check-lg"></i> บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background:var(--glass-bg-strong);backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--radius-lg);">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-danger" id="deleteUserModalLabel"><i class="bi bi-exclamation-triangle"></i> ยืนยันการลบผู้ใช้</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="deleteUid" />
+          <p>คุณต้องการลบผู้ใช้นี้หรือไม่?</p>
+          <div class="p-3 rounded" style="background:var(--primary-bg-subtle);">
+            <strong id="deleteUserName"></strong><br>
+            <span class="text-secondary" id="deleteUserEmail"></span>
+          </div>
+          <div class="mt-3 text-danger small"><i class="bi bi-info-circle"></i> การลบจะไม่สามารถย้อนกลับได้</div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" id="btnConfirmDelete" class="btn btn-danger"><i class="bi bi-trash"></i> ลบผู้ใช้</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase + Auth -->
   <script type="module">
+    import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { db, auth } from "./assets/js/firebase-config.js";
+    import { initAuthGuard } from "./assets/js/auth-guard.js";
+    import { escapeHTML, $ } from "./assets/js/utils.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebasestorage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
+    const ALLOWED_DOMAINS = [
+      'icpfertilizer.com', 'icpinter.com', 'r3lifewellness.com',
+      'icpladda.com', 'icpservicing.com', 'iconkaset.com'
+    ];
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    function isAllowedEmail(email) {
+      if (!email || !email.includes('@')) return false;
+      const domain = email.split('@')[1].toLowerCase();
+      return ALLOWED_DOMAINS.includes(domain);
+    }
 
     const roles = ['Admin', 'Manager', 'Staff', 'No Access'];
     let dataTable;
 
-    // โหลดรายชื่อผู้ใช้
     async function loadUsers() {
       const snapshot = await getDocs(collection(db, 'users'));
       const tbody = document.getElementById('user-list');
       tbody.innerHTML = '';
 
       if(snapshot.empty){
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4">ไม่พบข้อมูลผู้ใช้</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">ไม่พบข้อมูลผู้ใช้</td></tr>`;
         return;
       }
 
       snapshot.forEach(docSnap => {
         const user = docSnap.data();
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${user.name || '-'}</td>
-          <td>${user.email || '-'}</td>
-          <td>
-            <select class="form-select form-select-sm" data-uid="${docSnap.id}">
-              ${roles.map(r => `<option value="${r}" ${user.role === r ? 'selected' : ''}>${r}</option>`).join('')}
-            </select>
-          </td>
-        `;
+
+        const tdName = document.createElement('td');
+        tdName.textContent = user.name || '-';
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = user.email || '-';
+        const tdRole = document.createElement('td');
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+        select.setAttribute('data-uid', docSnap.id);
+        roles.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r;
+          if (user.role === r) opt.selected = true;
+          select.appendChild(opt);
+        });
+        tdRole.appendChild(select);
+
+        // Action buttons
+        const tdAction = document.createElement('td');
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn btn-warning btn-sm me-1';
+        btnEdit.innerHTML = '<i class="bi bi-pencil"></i>';
+        btnEdit.title = 'แก้ไข';
+        btnEdit.addEventListener('click', () => openEditModal(docSnap.id, user));
+
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn btn-danger btn-sm';
+        btnDelete.innerHTML = '<i class="bi bi-trash"></i>';
+        btnDelete.title = 'ลบ';
+        btnDelete.addEventListener('click', () => openDeleteModal(docSnap.id, user));
+
+        tdAction.appendChild(btnEdit);
+        tdAction.appendChild(btnDelete);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdRole);
+        tr.appendChild(tdAction);
         tbody.appendChild(tr);
 
-        tr.querySelector('select').addEventListener('change', async e => {
+        select.addEventListener('change', async e => {
           const uid = e.target.getAttribute('data-uid');
           const newRole = e.target.value;
-          await updateDoc(doc(db,'users',uid), { role: newRole });
-          if(dataTable) dataTable.row(tr).invalidate().draw(false);
+          try {
+            await updateDoc(doc(db,'users',uid), { role: newRole });
+            if(dataTable) dataTable.row(tr).invalidate().draw(false);
+          } catch(err) {
+            alert('ไม่สามารถเปลี่ยน role ได้: ' + err.message);
+          }
         });
       });
 
@@ -172,44 +310,150 @@
         dataTable = new DataTable('#usersTable', {
           pageLength: 10,
           lengthMenu: [5,10,25,50],
-          columnDefs: [{ orderable: false, targets: 2 }]
+          columnDefs: [{ orderable: false, targets: [2, 3] }]
         });
       }
     }
 
-    // โหลดชื่อผู้ใช้ปัจจุบันจาก Firestore
-    async function loadCurrentUser() {
-      const user = auth.currentUser;
-      if(!user) return;
-
-      const docSnap = await getDoc(doc(db, 'users', user.uid));
-      if(!docSnap.exists()) return;
-
-      const userData = docSnap.data();
-      const displayName = userData.name || user.email || 'ผู้ใช้';
-
-      document.getElementById('userDisplayName').textContent = displayName;
-
-      const avatar = document.querySelector('.avatar-circle');
-      if(avatar) avatar.textContent = displayName[0].toUpperCase();
+    // ---- Edit User ----
+    function openEditModal(uid, user) {
+      $('#editUid').value = uid;
+      $('#editName').value = user.name || '';
+      $('#editEmail').value = user.email || '';
+      $('#editRole').value = user.role || 'Staff';
+      $('#editUserError').style.display = 'none';
+      new bootstrap.Modal($('#editUserModal')).show();
     }
 
-    function watchAuth() {
-      onAuthStateChanged(auth, async user => {
-        if(!user){ window.location.href='index.html'; return; }
-        await loadCurrentUser();
+    $('#btnSaveEdit').addEventListener('click', async () => {
+      const uid = $('#editUid').value;
+      const name = $('#editName').value.trim();
+      const role = $('#editRole').value;
+      const errEl = $('#editUserError');
+
+      if (!name) {
+        errEl.textContent = 'กรุณากรอกชื่อ-นามสกุล';
+        errEl.style.display = '';
+        return;
+      }
+
+      try {
+        await updateDoc(doc(db, 'users', uid), { name, role });
+        bootstrap.Modal.getInstance($('#editUserModal')).hide();
+        if (dataTable) { dataTable.destroy(); dataTable = null; }
         await loadUsers();
+      } catch (err) {
+        errEl.textContent = 'ไม่สามารถบันทึกได้: ' + err.message;
+        errEl.style.display = '';
+      }
+    });
+
+    // ---- Delete User ----
+    function openDeleteModal(uid, user) {
+      $('#deleteUid').value = uid;
+      $('#deleteUserName').textContent = user.name || '-';
+      $('#deleteUserEmail').textContent = user.email || '-';
+      new bootstrap.Modal($('#deleteUserModal')).show();
+    }
+
+    $('#btnConfirmDelete').addEventListener('click', async () => {
+      const uid = $('#deleteUid').value;
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+        bootstrap.Modal.getInstance($('#deleteUserModal')).hide();
+        if (dataTable) { dataTable.destroy(); dataTable = null; }
+        await loadUsers();
+      } catch (err) {
+        alert('ไม่สามารถลบผู้ใช้ได้: ' + err.message);
+      }
+    });
+
+    // ---- Add User Form ----
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+      addUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl = $('#addUserError');
+        const successEl = $('#addUserSuccess');
+        errEl.style.display = 'none';
+        successEl.style.display = 'none';
+
+        const name = $('#newUserName').value.trim();
+        const email = $('#newUserEmail').value.trim();
+        const password = $('#newUserPassword').value;
+        const role = $('#newUserRole').value;
+
+        if (!name || !email || !password) {
+          errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ';
+          errEl.style.display = '';
+          return;
+        }
+
+        if (!isAllowedEmail(email)) {
+          errEl.textContent = 'อีเมลต้องเป็นโดเมนองค์กรเท่านั้น (' + ALLOWED_DOMAINS.join(', ') + ')';
+          errEl.style.display = '';
+          return;
+        }
+
+        if (password.length < 6) {
+          errEl.textContent = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+          errEl.style.display = '';
+          return;
+        }
+
+        // Save current admin credentials to re-login after creating user
+        const adminUser = auth.currentUser;
+        const adminEmail = adminUser.email;
+
+        try {
+          // Use secondary app to create user without signing out admin
+          const secondaryApp = initializeApp(
+            { apiKey: auth.app.options.apiKey, authDomain: auth.app.options.authDomain, projectId: auth.app.options.projectId },
+            'secondary-' + Date.now()
+          );
+          const secondaryAuth = getAuth(secondaryApp);
+
+          const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+          const uid = cred.user.uid;
+
+          // Create user doc in Firestore
+          await setDoc(doc(db, 'users', uid), {
+            name,
+            email,
+            role,
+            createdAt: new Date().toISOString()
+          });
+
+          // Sign out from secondary app & delete it
+          await secondaryAuth.signOut();
+          await secondaryApp.delete();
+
+          successEl.textContent = `เพิ่มผู้ใช้ "${name}" (${email}) สำเร็จแล้ว`;
+          successEl.style.display = '';
+          addUserForm.reset();
+
+          // Reload table
+          if (dataTable) { dataTable.destroy(); dataTable = null; }
+          await loadUsers();
+        } catch (err) {
+          let msg = 'ไม่สามารถเพิ่มผู้ใช้ได้: ';
+          if (err.code === 'auth/email-already-in-use') msg += 'อีเมลนี้ถูกใช้งานแล้ว';
+          else if (err.code === 'auth/invalid-email') msg += 'รูปแบบอีเมลไม่ถูกต้อง';
+          else if (err.code === 'auth/weak-password') msg += 'รหัสผ่านง่ายเกินไป';
+          else msg += err.message;
+          errEl.textContent = msg;
+          errEl.style.display = '';
+        }
       });
     }
 
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-      await signOut(auth);
-      window.location.href='index.html';
+    initAuthGuard(async () => {
+      await loadUsers();
     });
-
-    watchAuth();
   </script>
 
+  <!-- jQuery (required by DataTables) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <!-- DataTables JS -->
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>

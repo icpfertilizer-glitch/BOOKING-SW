@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -59,13 +60,15 @@
             <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
           </ul>
         </li>
-        <li>
-          <a href="" class="menu-link"><span>⚙️</span> ตั้งค่า</a>
-        </li>
       </ul>
-      <div class="menu-section">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled">
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
         <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
       </ul>
       <hr class="my-4">
       <div class="d-flex align-items-center gap-3">
@@ -156,40 +159,15 @@
     </div>
   </main>
   <script type="module">
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-    // --- Role / User ---
-    const DEFAULT_ROLE = 'viewer';
-    let currentUser = null;  // {user, role, name}
-    async function getUserData(uid) {
-      const snap = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid)));
-      if (!snap.empty) {
-        const data = snap.docs[0].data() || {};
-        return { name: data.name || 'ผู้ใช้', role: (data.role || DEFAULT_ROLE).toLowerCase() };
-      }
-      return { name: 'ผู้ใช้', role: DEFAULT_ROLE };
-    }
-    function applyUserDisplay(name) {
-      $('#userDisplayName').textContent = name || 'ผู้ใช้';
-      $('#menuUserName').textContent = name || 'ผู้ใช้';
-      const av = document.querySelector('.avatar-circle');
-      if (av) av.textContent = (name && name[0]) ? name[0].toUpperCase() : 'U';
-    }
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebase.storage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { db } from "./assets/js/firebase-config.js";
+    import { initAuthGuard } from "./assets/js/auth-guard.js";
+    import { $, escapeHTML } from "./assets/js/utils.js";
+
+    let currentUser = null;
     const roomsRef = collection(db, 'meeting_rooms');
     const meetingsRef = collection(db, 'meetings');
     // --- UI Elements ---
-    const $ = s => document.querySelector(s);
     const bookingsTableBody = $('#bookingsTable tbody');
     const bookingsChartEl = $('#bookingsChart');
     const roomsPieChartEl = $('#roomsPieChart');
@@ -274,15 +252,20 @@
       bookingsTableBody.innerHTML = '';
       bookings.forEach(b => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${b.date || ''}</td>
-          <td>${b.start || ''}–${b.end || ''}</td>
-          <td>${rooms.find(r => r.id === b.roomId)?.name || b.roomName || ''}</td>
-          <td>${b.bookerName || b.userName || ''}</td>
-          <td>${b.title || ''}</td>
-          <td>${b.contact || ''}</td>
-          <td>${b.status || 'ยืนยัน'}</td>
-        `;
+        const fields = [
+          b.date || '',
+          `${b.start || ''}–${b.end || ''}`,
+          rooms.find(r => r.id === b.roomId)?.name || b.roomName || '',
+          b.bookerName || b.userName || '',
+          b.title || '',
+          b.contact || '',
+          b.status || 'ยืนยัน'
+        ];
+        fields.forEach(text => {
+          const td = document.createElement('td');
+          td.textContent = text;
+          tr.appendChild(td);
+        });
         bookingsTableBody.appendChild(tr);
       });
     }
@@ -306,12 +289,16 @@
     $('#btnFilter').addEventListener('click', loadBookings);
     // --- Init ---
     // --- Auth ---
-    const auth = getAuth(app);
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = 'index.html'; return; }
-      const { name, role } = await getUserData(user.uid);
+    initAuthGuard((user, name, role) => {
       currentUser = { user, role, name };
-      applyUserDisplay(name);
+      // Guard: เฉพาะ admin และ manager เท่านั้น
+      if (role !== 'admin' && role !== 'manager') {
+        document.querySelector('main').innerHTML = `
+          <div class="alert alert-warning mt-4" role="alert">
+            <i class="bi bi-shield-lock"></i> หน้านี้สำหรับ <strong>Admin</strong> และ <strong>Manager</strong> เท่านั้น
+          </div>`;
+        return;
+      }
       setDefaultMTD();
       loadRooms().then(loadBookings);
     });

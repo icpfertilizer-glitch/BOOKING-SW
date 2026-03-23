@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -505,22 +506,16 @@
 
   <!-- Firebase (ESM) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { auth, db } from "./assets/js/firebase-config.js";
+    import { escapeHTML } from "./assets/js/utils.js";
 
-    /* ============== CONFIG ============== */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebasestorage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
-
-    /* ============== INIT ============== */
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    // Auth guard - redirect unauthenticated users
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { window.location.href = 'index.html'; return; }
+      initialize();
+    });
     const roomsRef = collection(db, "meeting_rooms");
     const meetingsRef = collection(db, "meetings");
 
@@ -635,21 +630,9 @@
         if(!grouped[rid]) grouped[rid] = { meta:{ id:rid, name:m.roomName || "(ไม่มีชื่อ)" }, prev:[], now:[], next:[] };
         const s=hm2m(m.start), e=hm2m(m.end);
         
-        // Debug: แสดงข้อมูลการจัดกลุ่ม
-        console.log(`Meeting: ${m.roomName} ${m.start}-${m.end}, nowM: ${nowM}, s: ${s}, e: ${e}`);
-        
-        if(e<=nowM) {
-          grouped[rid].prev.push(m);
-          console.log(`-> Added to PREV: ${m.start}-${m.end}`);
-        }
-        else if(s<=nowM && nowM<e) {
-          grouped[rid].now.push(m);
-          console.log(`-> Added to NOW: ${m.start}-${m.end}`);
-        }
-        else {
-          grouped[rid].next.push(m);
-          console.log(`-> Added to NEXT: ${m.start}-${m.end}`);
-        }
+        if(e<=nowM) grouped[rid].prev.push(m);
+        else if(s<=nowM && nowM<e) grouped[rid].now.push(m);
+        else grouped[rid].next.push(m);
       });
 
       // วาดการ์ดตามชื่อ
@@ -660,9 +643,6 @@
           const floor = g.meta?.location ?? g.meta?.floor ?? g.meta?.level ?? null;
           const cap   = g.meta?.capacity ?? g.meta?.cap ?? null;
           
-          // Debug: แสดงข้อมูลห้องใน console
-          console.log('Room data:', g.meta?.name, 'Floor:', floor, 'Raw data:', g.meta);
-          console.log(`Room ${name}: prev=${g.prev.length}, now=${g.now.length}, next=${g.next.length}`);
           const h = hueFromString(g.meta?.id || name);
 
           const card=document.createElement("div");
@@ -674,9 +654,18 @@
 
           const nameDiv=document.createElement("div");
           nameDiv.className="room-name";
-          // แสดงชื่อห้องพร้อม floor ในวงเล็บสีเทา
-          const floorHtml = floor ? ` <small class="text-secondary">(ชั้น ${floor})</small>` : '';
-          nameDiv.innerHTML=`<span class="color-dot"></span><span>${name}${floorHtml}</span>`;
+          const colorDot = document.createElement("span");
+          colorDot.className = "color-dot";
+          nameDiv.appendChild(colorDot);
+          const nameTextSpan = document.createElement("span");
+          nameTextSpan.textContent = name;
+          if (floor) {
+            const floorSmall = document.createElement("small");
+            floorSmall.className = "text-secondary";
+            floorSmall.textContent = ` (ชั้น ${floor})`;
+            nameTextSpan.appendChild(floorSmall);
+          }
+          nameDiv.appendChild(nameTextSpan);
 
           const live=document.createElement("span");
           const busy = g.now.length>0;
@@ -751,35 +740,44 @@
     /* ============== DATA SUBSCRIPTIONS ============== */
     let rooms=[], todayMeetings=[];
     let unsubRooms, unsubToday;
+    let renderPending = false;
+
+    function scheduleRender() {
+      if (renderPending) return;
+      renderPending = true;
+      requestAnimationFrame(() => {
+        renderPending = false;
+        renderBoard(rooms, todayMeetings);
+      });
+    }
 
     function subscribeRooms(){
       const qRooms = query(roomsRef, orderBy("name"));
       return onSnapshot(qRooms, snap=>{
         rooms = snap.docs.map(d=>({ id:d.id, ...d.data() })).filter(r=> r.isActive !== false);
-        renderBoard(rooms, todayMeetings);
+        scheduleRender();
       });
     }
 
     function subscribeToday(){
       const today = toYmd(new Date());
-      console.log('Subscribing to meetings for date:', today);
       const qToday = query(meetingsRef, where("date","==", today));
       return onSnapshot(qToday, snap=>{
         todayMeetings = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-        console.log('Today meetings loaded:', todayMeetings.length, todayMeetings);
-        renderBoard(rooms, todayMeetings);
+        scheduleRender();
       }, _err=>{
-        console.error('Error loading meetings:', _err);
         todayMeetings = [];
         renderBoard(rooms, todayMeetings);
       });
     }
 
+    let initialized = false;
     function initialize(){
+      if (initialized) return;
+      initialized = true;
       unsubRooms = subscribeRooms();
       unsubToday = subscribeToday();
     }
-    initialize();
 
     // รีเฟรช section/เวลา ทุก 30 วินาที (progress + "เพิ่งจบ")
     setInterval(()=> renderBoard(rooms, todayMeetings), 30_000);

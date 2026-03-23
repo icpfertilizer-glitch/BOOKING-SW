@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -66,15 +67,16 @@
         <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
         </ul>
     </li>
-    <li>
-        <a href="" class="menu-link"><span>⚙️</span> ตั้งค่า</a>
-    </li>
     </ul>
 
-
-      <div class="menu-section">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled">
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
   <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
       </ul>
 
       <hr class="my-4">
@@ -99,75 +101,8 @@
 
   <!-- Firebase + Auth -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebasestorage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const DEFAULT_ROLE = 'viewer';
-
-    async function getUserData(uid) {
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (!snap.exists()) return { name: 'ผู้ใช้', role: DEFAULT_ROLE };
-      const data = snap.data();
-      return {
-        name: data.name || 'ผู้ใช้',
-        role: (data.role || DEFAULT_ROLE).toLowerCase()
-      };
-    }
-
-    function applyRoleToUI(role) {
-      document.documentElement.setAttribute('data-role', role);
-      document.querySelectorAll('[data-required-role]').forEach(el => {
-        const allowed = (el.getAttribute('data-required-role') || '').split(',').map(r => r.trim().toLowerCase());
-        el.style.display = allowed.includes(role) ? '' : 'none';
-      });
-    }
-
-    function applyUserDisplay(name) {
-      const nameEl = document.getElementById('userDisplayName');
-      if (nameEl) nameEl.textContent = name;
-      const menuNameEl = document.getElementById('menuUserName');
-      if (menuNameEl) menuNameEl.textContent = name;
-      const avatar = document.querySelector('.avatar-circle');
-      if (avatar) avatar.textContent = name[0].toUpperCase();
-    }
-
-    function enforcePageGuard(role) {
-      // Home เข้าถึงได้ทุก role
-    }
-
-    function watchAuth() {
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) { window.location.href = 'index.html'; return; }
-        const { name, role } = await getUserData(user.uid);
-        window.currentUser = { user, role, name };
-        applyUserDisplay(name);
-        applyRoleToUI(role);
-        enforcePageGuard(role);
-      });
-    }
-
-    async function logout() {
-      await signOut(auth);
-      window.location.href = 'index.html';
-    }
-
-    document.getElementById('btnLogout')?.addEventListener('click', logout);
-
-    watchAuth();
+    import { initAuthGuard } from "./assets/js/auth-guard.js";
+    initAuthGuard();
   </script>
 
   <!-- Bootstrap JS -->

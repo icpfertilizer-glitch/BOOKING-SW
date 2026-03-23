@@ -1,56 +1,165 @@
-/* ========== Base ========== */
-.navbar-brand { font-weight: 700; }
-.container-narrow { max-width: 960px; }
-body { padding-top: 72px; background: #efe5dc; font-family: Arial, sans-serif; color:#3b3a36; } /* Earth tone background + text */
+/* ========== Glassmorphism + Gradient Theme ========== */
 
-:root{
+/* ===== CSS Variables ===== */
+:root {
   --drawer-width: 300px;
-  --radius-lg: 16px;
-  --ease-fast: .28s cubic-bezier(.2,.7,.2,1);
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --ease-fast: .3s cubic-bezier(.2,.7,.2,1);
 
-  /* โทนสีใหม่ */
-  --primary-color: #c0392b;      /* แดงเข้ม */
-  --secondary-color: #e67e22;    /* ส้ม */
-  --tertiary-color: #f1c40f;     /* เหลือง */
-  --body-bg: #efe5dc;            /* Earth tone */
-  --body-color: #3b3a36;         /* ตัวอักษรเข้ม */
-  --border-color: #d6c6b0;       /* ขอบเบา ๆ */
-  --primary-bg-subtle: #fbeee6;  /* hover background */
+  /* Gradient palette */
+  --gradient-main: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-cool: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-body: linear-gradient(135deg, #e0e5ec 0%, #d9d4e7 50%, #c3cfe2 100%);
+
+  /* Core colors */
+  --primary-color: #667eea;
+  --primary-dark: #5a67d8;
+  --secondary-color: #764ba2;
+  --accent-color: #f093fb;
+  --success-color: #48bb78;
+  --danger-color: #f56565;
+  --warning-color: #ecc94b;
+
+  /* Surfaces */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 8px 32px rgba(102, 126, 234, 0.12), 0 2px 8px rgba(0,0,0,.06);
+  --glass-shadow-hover: 0 12px 40px rgba(102, 126, 234, 0.2), 0 4px 12px rgba(0,0,0,.08);
+  --glass-blur: blur(16px);
+
+  /* Text */
+  --body-color: #2d3748;
+  --body-color-muted: #718096;
+  --body-bg: var(--gradient-body);
+  --border-color: rgba(102, 126, 234, 0.15);
+
+  /* Subtle backgrounds */
+  --primary-bg-subtle: rgba(102, 126, 234, 0.08);
+  --primary-bg-hover: rgba(102, 126, 234, 0.14);
 }
 
-/* ลด motion เมื่อผู้ใช้ตั้งค่า prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce){
-  * { transition: none !important; animation: none !important; }
+/* Dark mode */
+[data-bs-theme="dark"] {
+  --glass-bg: rgba(30, 32, 48, 0.75);
+  --glass-bg-strong: rgba(30, 32, 48, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --body-color: #e2e8f0;
+  --body-color-muted: #a0aec0;
+  --gradient-body: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --primary-bg-subtle: rgba(102, 126, 234, 0.12);
+  --primary-bg-hover: rgba(102, 126, 234, 0.2);
 }
 
-/* ========== ปุ่ม Hamburger บน Navbar ========== */
-.menu-fab{
-  display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
-  width:38px; height:38px; border:0; border-radius:10px; padding:6px 8px;
-  background: var(--primary-bg-subtle); cursor:pointer; color: var(--primary-color);
-}
-.menu-fab:hover{ background: #f7dcc5; }
-.menu-fab-bar{ display:block; width:100%; height:2px; background: var(--primary-color); border-radius: 1px; }
+/* ===== Base ===== */
+* { box-sizing: border-box; }
 
+body {
+  padding-top: 72px;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--gradient-body);
+  background-attachment: fixed;
+  color: var(--body-color);
+  min-height: 100vh;
+}
+
+/* Subtle animated gradient orbs behind content */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(80px);
+  opacity: .35;
+}
+body::before {
+  width: 500px; height: 500px;
+  top: -120px; right: -100px;
+  background: radial-gradient(circle, rgba(102,126,234,.5), transparent 70%);
+  animation: floatOrb1 12s ease-in-out infinite;
+}
+body::after {
+  width: 400px; height: 400px;
+  bottom: -80px; left: -60px;
+  background: radial-gradient(circle, rgba(118,75,162,.4), transparent 70%);
+  animation: floatOrb2 15s ease-in-out infinite;
+}
+@keyframes floatOrb1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-40px, 30px) scale(1.1); }
+}
+@keyframes floatOrb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(30px, -40px) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, body::before, body::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.container-narrow { max-width: 960px; }
+
+/* ===== Navbar (Glass) ===== */
+.navbar {
+  background: var(--glass-bg-strong) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.06);
+}
+.navbar-brand {
+  font-weight: 800;
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Hamburger ===== */
 #menuFab { border: none; background: transparent; cursor: pointer; }
-.menu-icon { display:block; width:22px; height:2px; background: var(--primary-color); margin:5px 0; border-radius:1px; }
+.menu-icon {
+  display: block; width: 22px; height: 2.5px;
+  background: var(--primary-color);
+  margin: 4px 0; border-radius: 2px;
+  transition: all .25s ease;
+}
+.menu-fab {
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
+  width: 38px; height: 38px; border: 0; border-radius: var(--radius-sm); padding: 6px 8px;
+  background: var(--primary-bg-subtle); cursor: pointer; color: var(--primary-color);
+}
+.menu-fab:hover { background: var(--primary-bg-hover); }
+.menu-fab-bar { display: block; width: 100%; height: 2.5px; background: var(--primary-color); border-radius: 2px; }
 
-/* ========== Overlay + Drawer (Left) ========== */
+/* ===== Overlay + Drawer (Glass) ===== */
 .menu-overlay {
   position: fixed; inset: 0; z-index: 1055;
-  background: rgba(59, 58, 54, 0.24);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   opacity: 0; pointer-events: none;
-  transition: opacity .24s ease;
+  transition: opacity .28s ease;
 }
 .menu-overlay.show { opacity: 1; pointer-events: auto; overflow: hidden; }
 
 .menu-drawer {
   position: absolute; top: 0; left: 0;
   height: 100%; width: var(--drawer-width); max-width: 92vw;
-  background: var(--body-bg);
-  border-right: 1px solid var(--border-color);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid var(--glass-border);
   padding: 80px 20px 20px;
   transform: translateX(-100%);
   transition: transform var(--ease-fast), box-shadow var(--ease-fast);
@@ -59,94 +168,218 @@ body { padding-top: 72px; background: #efe5dc; font-family: Arial, sans-serif; c
   -webkit-overflow-scrolling: touch;
   box-shadow: 0 0 0 rgba(0,0,0,0);
 }
-.menu-overlay.show .menu-drawer { transform: translateX(0); box-shadow: 12px 0 24px rgba(0,0,0,.08); }
+.menu-overlay.show .menu-drawer {
+  transform: translateX(0);
+  box-shadow: 16px 0 48px rgba(102, 126, 234, 0.12), 4px 0 12px rgba(0,0,0,.06);
+}
 
-/* ========== Header ใน Drawer ========== */
-.menu-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); color: var(--primary-color); }
+/* ===== Drawer Header ===== */
+.menu-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.menu-header h5 {
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-/* ========== รายการเมนู ========== */
+/* ===== Menu Items ===== */
 .menu-list { margin: 0; padding: 0; list-style: none; }
 .menu-link {
   display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px; border-radius: 12px;
+  padding: 10px 14px; border-radius: var(--radius-md);
   text-decoration: none; color: var(--body-color);
-  font-weight: 500; transition: background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
+  font-weight: 500;
+  transition: all .2s ease;
   border: 1px solid transparent;
 }
 .menu-link:hover {
-  background: var(--primary-bg-subtle);
+  background: var(--primary-bg-hover);
   color: var(--primary-color);
+  transform: translateX(4px);
 }
-.menu-link:focus-visible{
+.menu-link:focus-visible {
   outline: 0;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 22%, transparent);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, .2);
 }
-.menu-link.is-active{
+.menu-link.is-active {
   background: var(--primary-bg-subtle);
   color: var(--primary-color);
-  border-color: color-mix(in srgb, var(--primary-color) 35%, transparent);
+  border-color: rgba(102, 126, 234, .25);
+  font-weight: 600;
 }
 
-/* ========== Section Heading ========== */
+/* ===== Section Heading ===== */
 .menu-section {
-  font-size: 0.85rem; font-weight: 800; letter-spacing: .02em;
+  font-size: 0.78rem; font-weight: 800; letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--secondary-color);
-  margin: 20px 0 8px; padding-left: 4px;
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 22px 0 8px; padding-left: 6px;
 }
 
-/* ========== Dropdown ========== */
+/* ===== Dropdown ===== */
 .menu-dropdown > .menu-link { cursor: pointer; justify-content: space-between; }
-.menu-dropdown .caret { margin-left: 8px; transition: transform .18s ease; }
+.menu-dropdown .caret { margin-left: 8px; transition: transform .2s ease; }
 .menu-dropdown.open .caret { transform: rotate(180deg); }
 
 .submenu {
   overflow: hidden; max-height: 0; opacity: 0;
   margin-left: 8px; padding-left: 10px;
   border-left: 2px solid var(--border-color);
-  transition: max-height .22s ease, opacity .18s ease, margin .18s ease;
+  transition: max-height .24s ease, opacity .2s ease, margin .2s ease;
 }
 .menu-dropdown.open .submenu {
   max-height: 480px;
   opacity: 1; margin-top: 6px; margin-bottom: 6px;
 }
-.submenu .menu-link { padding: 8px 10px; border-radius: 10px; }
+.submenu .menu-link { padding: 8px 10px; border-radius: var(--radius-sm); }
 
-/* ========== Avatar ผู้ใช้ ========== */
-.avatar-circle{
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--secondary-color);
+/* ===== Avatar ===== */
+.avatar-circle {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--gradient-main);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; color: #fff;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, .25);
 }
 
-/* ========== Card ========== */
-.card{
-  background: #ffffff; /* เหลืองอ่อน */
+/* ===== Card (Glass) ===== */
+.card {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 6px 24px rgba(0,0,0,.08);
-  padding:16px;
-  margin-bottom:16px;
-  color:#3b3a36;
+  box-shadow: var(--glass-shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+  color: var(--body-color);
+  transition: box-shadow .25s ease, transform .25s ease;
+}
+.card:hover {
+  box-shadow: var(--glass-shadow-hover);
 }
 
-/* ========== Buttons Soft ========== */
+/* ===== Buttons ===== */
+.btn-primary {
+  background: var(--gradient-main) !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, .25);
+  transition: all .25s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(102, 126, 234, .35);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+
 .btn-soft {
-  background: #f9d7a0;
-  color: #3b3a36;
-  border:0;
-  transition: background .2s ease;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  color: var(--body-color);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transition: all .2s ease;
 }
-.btn-soft:hover { background: #f1c40f; color:#fff; }
+.btn-soft:hover {
+  background: var(--primary-bg-hover);
+  color: var(--primary-color);
+  border-color: rgba(102, 126, 234, .3);
+}
 
-/* ========== Scrollbar ใน Drawer ========== */
-.menu-drawer{
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--body-color) 20%, transparent) transparent;
+.btn-danger {
+  border-radius: var(--radius-sm) !important;
 }
-.menu-drawer::-webkit-scrollbar{ width: 8px; }
-.menu-drawer::-webkit-scrollbar-thumb{
-  background: color-mix(in srgb, var(--body-color) 18%, transparent);
-  border-radius: 8px;
+
+/* ===== Form Controls (Glass) ===== */
+.form-control, .form-select {
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--body-color);
+  transition: all .2s ease;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, .15) !important;
+  background: var(--glass-bg-strong) !important;
+}
+
+/* ===== Tables (Glass) ===== */
+.table {
+  --bs-table-bg: transparent;
+  color: var(--body-color);
+}
+.table-light {
+  --bs-table-bg: var(--primary-bg-subtle);
+}
+.table > :not(caption) > * > * {
+  border-bottom-color: var(--border-color);
+}
+
+/* ===== Toast (Glass) ===== */
+.toast {
+  background: var(--glass-bg-strong) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--glass-shadow);
+  color: var(--body-color) !important;
+}
+
+/* ===== Scrollbar ===== */
+.menu-drawer {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(102, 126, 234, .2) transparent;
+}
+.menu-drawer::-webkit-scrollbar { width: 6px; }
+.menu-drawer::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, .2);
+  border-radius: 6px;
+}
+.menu-drawer::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, .35);
+}
+
+/* ===== Badge ===== */
+.badge {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* ===== Utility ===== */
+.text-gradient {
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Page heading ===== */
+main h2 {
+  font-weight: 800;
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .menu-drawer { width: 280px; }
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,23 +12,52 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-attachment: fixed;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed; top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,147,251,.3), transparent 70%);
+  filter: blur(60px);
+  animation: floatOrb 12s ease-in-out infinite;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; bottom: -150px; left: -150px;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79,172,254,.25), transparent 70%);
+  filter: blur(60px);
+  animation: floatOrb 15s ease-in-out infinite reverse;
+  pointer-events: none;
+}
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-30px,25px) scale(1.1); }
 }
 
 .login-container {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 24px;
+  padding: 44px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(102,126,234,.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   animation: slideUp 0.6s ease-out;
 }
 
@@ -68,17 +97,18 @@ body {
 .input-group input {
   width: 100%;
   padding: 15px 20px;
-  border: 2px solid #e1e5e9;
-  border-radius: 12px;
+  border: 1px solid rgba(102,126,234,.18);
+  border-radius: 14px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: #f8f9fa;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(8px);
 }
 
 .input-group input:focus {
   outline: none;
   border-color: #667eea;
-  background: white;
+  background: rgba(255,255,255,.85);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
@@ -97,7 +127,7 @@ body {
   padding: 15px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   color: white;
   font-size: 1.1rem;
   font-weight: 600;
@@ -232,6 +262,18 @@ body {
     font-size: 1.75rem;
   }
 }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>
 </head>
 <body>
@@ -241,20 +283,24 @@ body {
     <p>Please sign in to your account</p>
   </div>
   
-  <div class="input-group">
-    <input type="email" id="login-email" placeholder="Enter your email">
-    <span class="icon">📧</span>
-  </div>
-  
-  <div class="input-group">
-    <input type="password" id="login-password" placeholder="Enter your password">
-    <span class="icon">🔒</span>
-  </div>
-  
-  <div class="error" id="login-error"></div>
-  <div class="success-message" id="success-message">Login successful! Redirecting...</div>
-  
-  <button class="login-btn" id="login-btn">Sign In</button>
+  <form id="login-form" autocomplete="on">
+    <div class="input-group">
+      <label for="login-email" class="visually-hidden">Email</label>
+      <input type="email" id="login-email" placeholder="Enter your email" autocomplete="email" required>
+      <span class="icon">📧</span>
+    </div>
+
+    <div class="input-group">
+      <label for="login-password" class="visually-hidden">Password</label>
+      <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required>
+      <span class="icon">🔒</span>
+    </div>
+
+    <div class="error" id="login-error"></div>
+    <div class="success-message" id="success-message">Login successful! Redirecting...</div>
+
+    <button type="submit" class="login-btn" id="login-btn">Sign In</button>
+  </form>
   
   <div class="register-link">
     <p>Don't have an account? <a href="Register.html">Create one here</a></p>
@@ -263,24 +309,9 @@ body {
 
 <!-- Script Module -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-  authDomain: "booking-sw.firebaseapp.com",
-  projectId: "booking-sw",
-  storageBucket: "booking-sw.firebasestorage.app",
-  messagingSenderId: "134246403096",
-  appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { auth, db } from "./assets/js/firebase-config.js";
 
 // --- รอจน DOM โหลดเสร็จ ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -306,7 +337,9 @@ document.addEventListener("DOMContentLoaded", () => {
     successEl.classList.remove('show');
   }
 
-  loginBtn.addEventListener('click', async () => {
+  const loginForm = document.getElementById('login-form');
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
     
@@ -333,9 +366,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const role = userDoc.data().role;
 
-      if(role === "No Access"){ 
-        showError("Your account is pending admin approval. Please wait for approval.");
-        return; 
+      if(role === "No Access"){
+        showError("บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
+        return;
       }
       else { 
         showSuccess("Login successful! Redirecting...");
@@ -347,10 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch(error) {
       let errorMessage = "Login failed. Please try again.";
       
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = "No account found with this email.";
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = "Incorrect password.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password.";
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = "Invalid email address.";
       } else if (error.code === 'auth/too-many-requests') {
@@ -362,13 +393,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // Remove loading state
       container.classList.remove('loading');
       loginBtn.textContent = 'Sign In';
-    }
-  });
-
-  // Add enter key support
-  document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      loginBtn.click();
     }
   });
 

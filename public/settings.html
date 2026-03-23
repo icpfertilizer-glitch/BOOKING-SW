@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ตั้งค่าระบบ • Admin Settings</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="assets/css/styles.css" rel="stylesheet" />
+  <script src="assets/js/menu.js" defer></script>
+
+  <style>
+    body { padding-top: 72px; }
+    .settings-section {
+      background: var(--glass-bg, rgba(255,255,255,.72));
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border, rgba(255,255,255,.45));
+      border-radius: 18px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(102,126,234,.1), 0 2px 8px rgba(0,0,0,.04);
+      transition: box-shadow .25s ease;
+    }
+    .settings-section:hover {
+      box-shadow: 0 12px 40px rgba(102,126,234,.16), 0 4px 12px rgba(0,0,0,.06);
+    }
+    .settings-section h5 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color, rgba(102,126,234,.15));
+    }
+    .settings-section h5 i {
+      font-size: 1.3em;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .form-label { font-weight: 600; }
+    .hint { font-size: 0.82rem; color: #6c757d; margin-top: 4px; }
+
+    /* Holiday list */
+    .holiday-list { max-height: 240px; overflow-y: auto; }
+    .holiday-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color, rgba(102,126,234,.15));
+      border-radius: 12px;
+      margin-bottom: 6px;
+      background: var(--glass-bg, rgba(255,255,255,.6));
+      transition: all .2s ease;
+    }
+    .holiday-item:hover { background: rgba(102,126,234,.08); transform: translateX(4px); }
+    .holiday-item .date { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .holiday-item .label { color: #495057; font-size: 0.9rem; }
+    .holiday-item .btn-remove {
+      border: none;
+      background: none;
+      color: #dc3545;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .holiday-item .btn-remove:hover { background: rgba(220,53,69,.1); }
+
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--glass-bg-strong, rgba(255,255,255,.85));
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--glass-border, rgba(255,255,255,.45));
+      padding: 12px 0;
+      z-index: 10;
+    }
+
+    .avatar-circle {
+      width: 36px; height: 36px; background: #0d6efd; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg border-bottom fixed-top bg-body">
+    <div class="container-fluid">
+      <button id="menuFab" class="btn btn-link p-0 me-3" aria-label="เมนู" aria-expanded="false">
+        <span class="menu-icon"></span>
+        <span class="menu-icon"></span>
+        <span class="menu-icon"></span>
+      </button>
+      <a class="navbar-brand fw-bold" href="#">ตั้งค่าระบบ</a>
+      <div class="d-flex align-items-center gap-2 ms-auto">
+        <span id="userDisplayName" class="fw-semibold text-primary">ผู้ใช้</span>
+        <button id="btnLogout" class="btn btn-danger btn-sm">ออกจากระบบ</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar Overlay -->
+  <div id="menuOverlay" class="menu-overlay" aria-hidden="true">
+    <aside class="menu-drawer shadow-lg">
+      <div class="menu-header d-flex align-items-center justify-content-between mb-4">
+        <h5 class="fw-bold mb-0">เมนูระบบ</h5>
+        <button id="menuClose" class="btn btn-outline-secondary btn-sm">✕</button>
+      </div>
+      <div class="menu-section">Dashboard</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="dashboard.html" class="menu-link"><span>🏠</span> Dashboard</a></li>
+      </ul>
+      <div class="menu-section">ส่วนทั่วไป</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="bookings.html" class="menu-link"><span>🙍</span> จองห้องประชุม</a></li>
+      </ul>
+      <div class="menu-section" data-required-role="admin">ส่วนจัดการข้อมูล</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin">
+        <li class="menu-dropdown">
+          <button class="menu-link d-flex justify-content-between align-items-center w-100">
+            <span>👥 จัดการ</span>
+            <span class="caret">▾</span>
+          </button>
+          <ul class="submenu list-unstyled">
+            <li><a href="Admin.html" class="menu-link">- การจัดการสิทธิ์</a></li>
+            <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
+          </ul>
+        </li>
+      </ul>
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
+        <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
+      </ul>
+      <hr class="my-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar-circle">U</div>
+        <div>
+          <div class="fw-semibold" id="menuUserName">—</div>
+          <div class="text-secondary small">กำลังใช้งานอยู่</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Main Content -->
+  <main id="mainContent" class="container" style="max-width:820px;">
+    <h2 class="fw-bold mb-4"><i class="bi bi-gear"></i> ตั้งค่า</h2>
+
+    <!-- ===== ส่วนผู้ใช้ทุกคน ===== -->
+
+    <!-- โปรไฟล์ -->
+    <div class="settings-section">
+      <h5><i class="bi bi-person-circle"></i> โปรไฟล์</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="profileName">ชื่อแสดงผล</label>
+          <input type="text" id="profileName" class="form-control" placeholder="ชื่อ-นามสกุล" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="profilePhone">เบอร์โทรศัพท์</label>
+          <input type="tel" id="profilePhone" class="form-control" placeholder="0x-xxx-xxxx" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">อีเมล</label>
+          <input type="email" id="profileEmail" class="form-control" readonly disabled />
+          <div class="hint">อีเมลไม่สามารถเปลี่ยนได้</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">สิทธิ์การใช้งาน</label>
+          <input type="text" id="profileRole" class="form-control" readonly disabled />
+        </div>
+      </div>
+      <div class="mt-3">
+        <button id="btnSaveProfile" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> บันทึกโปรไฟล์
+        </button>
+      </div>
+    </div>
+
+    <!-- เปลี่ยนรหัสผ่าน -->
+    <div class="settings-section">
+      <h5><i class="bi bi-shield-lock"></i> เปลี่ยนรหัสผ่าน</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="newPassword">รหัสผ่านใหม่</label>
+          <input type="password" id="newPassword" class="form-control" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="confirmPassword">ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="confirmPassword" class="form-control" placeholder="พิมพ์รหัสผ่านอีกครั้ง" autocomplete="new-password" />
+        </div>
+      </div>
+      <div class="mt-3">
+        <button id="btnChangePassword" class="btn btn-warning">
+          <i class="bi bi-key"></i> เปลี่ยนรหัสผ่าน
+        </button>
+      </div>
+    </div>
+
+    <!-- ธีม -->
+    <div class="settings-section">
+      <h5><i class="bi bi-palette"></i> ธีม</h5>
+      <div class="d-flex gap-3">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="theme" id="themeLight" value="light" checked>
+          <label class="form-check-label" for="themeLight">
+            <i class="bi bi-sun"></i> สว่าง (Light)
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="theme" id="themeDark" value="dark">
+          <label class="form-check-label" for="themeDark">
+            <i class="bi bi-moon-stars"></i> มืด (Dark)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ส่วน Admin เท่านั้น ===== -->
+    <div id="adminSettingsSection">
+      <hr class="my-4">
+      <h4 class="fw-bold mb-3 text-danger"><i class="bi bi-gear-wide-connected"></i> ตั้งค่าระบบ (Admin)</h4>
+
+    <!-- 1. ตั้งค่าการจอง -->
+    <div class="settings-section">
+      <h5><i class="bi bi-clock"></i> ตั้งค่าการจอง</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="bookingStartTime">เวลาเปิดให้จอง</label>
+          <input type="time" id="bookingStartTime" class="form-control" value="08:00" />
+          <div class="hint">เวลาเริ่มต้นที่สามารถจองห้องประชุมได้</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="bookingEndTime">เวลาปิดให้จอง</label>
+          <input type="time" id="bookingEndTime" class="form-control" value="19:00" />
+          <div class="hint">เวลาสิ้นสุดที่สามารถจองห้องประชุมได้</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="maxAdvanceDays">จองล่วงหน้าได้สูงสุด (วัน)</label>
+          <input type="number" id="maxAdvanceDays" class="form-control" min="1" max="365" value="30" />
+          <div class="hint">จำนวนวันสูงสุดที่สามารถจองล่วงหน้าได้</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="maxDurationHours">จองสูงสุดต่อครั้ง (ชั่วโมง)</label>
+          <input type="number" id="maxDurationHours" class="form-control" min="0.5" max="12" step="0.5" value="4" />
+          <div class="hint">ระยะเวลาสูงสุดที่สามารถจองได้ในแต่ละครั้ง</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="slotInterval">ช่วงเวลา (นาที)</label>
+          <select id="slotInterval" class="form-select">
+            <option value="15">ทุก 15 นาที</option>
+            <option value="30" selected>ทุก 30 นาที</option>
+            <option value="60">ทุก 1 ชั่วโมง</option>
+          </select>
+          <div class="hint">ช่วงเวลาที่แบ่งให้เลือกใน dropdown เริ่ม/สิ้นสุด</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="maxBookingsPerDay">จองได้สูงสุดต่อคน/วัน</label>
+          <input type="number" id="maxBookingsPerDay" class="form-control" min="0" max="20" value="0" />
+          <div class="hint">0 = ไม่จำกัด</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. วันหยุด -->
+    <div class="settings-section">
+      <h5><i class="bi bi-calendar-x"></i> วันหยุด / วันปิดให้บริการ</h5>
+      <p class="text-secondary small mb-3">กำหนดวันที่ปิดไม่ให้จองห้องประชุม เช่น วันหยุดราชการ, วันหยุดบริษัท</p>
+
+      <div class="row g-2 mb-3">
+        <div class="col-auto">
+          <input type="date" id="holidayDate" class="form-control" />
+        </div>
+        <div class="col">
+          <input type="text" id="holidayLabel" class="form-control" placeholder="ชื่อวันหยุด เช่น วันสงกรานต์" />
+        </div>
+        <div class="col-auto">
+          <button id="btnAddHoliday" class="btn btn-outline-primary">
+            <i class="bi bi-plus-lg"></i> เพิ่ม
+          </button>
+        </div>
+      </div>
+
+      <div id="holidayList" class="holiday-list">
+        <div class="text-center text-secondary py-3">ยังไม่มีวันหยุด</div>
+      </div>
+    </div>
+
+    <!-- 3. การแจ้งเตือน -->
+    <div class="settings-section">
+      <h5><i class="bi bi-bell"></i> การแจ้งเตือน</h5>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="notifyOnBooking" checked>
+        <label class="form-check-label" for="notifyOnBooking">
+          แจ้งเตือนเมื่อมีการจองใหม่
+        </label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="notifyOnCancel" checked>
+        <label class="form-check-label" for="notifyOnCancel">
+          แจ้งเตือนเมื่อมีการยกเลิกการจอง
+        </label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="notifyBeforeMeeting">
+        <label class="form-check-label" for="notifyBeforeMeeting">
+          แจ้งเตือนก่อนเวลาประชุม
+        </label>
+      </div>
+      <div class="col-md-6" id="notifyMinutesWrap" style="display:none;">
+        <label class="form-label" for="notifyMinutesBefore">แจ้งเตือนล่วงหน้า (นาที)</label>
+        <select id="notifyMinutesBefore" class="form-select">
+          <option value="5">5 นาที</option>
+          <option value="10">10 นาที</option>
+          <option value="15" selected>15 นาที</option>
+          <option value="30">30 นาที</option>
+          <option value="60">1 ชั่วโมง</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Save Bar (Admin) -->
+    <div class="save-bar d-flex justify-content-end gap-2">
+      <button id="btnReset" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-counterclockwise"></i> คืนค่าเดิม
+      </button>
+      <button id="btnSave" class="btn btn-primary px-4">
+        <i class="bi bi-check-lg"></i> บันทึกการตั้งค่าระบบ
+      </button>
+    </div>
+    </div><!-- /adminSettingsSection -->
+  </main>
+
+  <!-- Toast -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+    <div id="toast" class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">บันทึกสำเร็จ</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase + Logic -->
+  <script type="module">
+    import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { updatePassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { auth, db } from "./assets/js/firebase-config.js";
+    import { initAuthGuard, applyUserDisplay } from "./assets/js/auth-guard.js";
+    import { $ } from "./assets/js/utils.js";
+
+    let toast;
+    document.addEventListener('DOMContentLoaded', () => {
+      toast = new bootstrap.Toast($('#toast'), { delay: 2000 });
+    });
+    const showToast = (msg) => {
+      $('#toastBody').textContent = msg;
+      if (toast) toast.show();
+    };
+
+    // ---- Firestore doc reference ----
+    const settingsRef = doc(db, 'settings', 'booking');
+
+    // ---- Default values ----
+    const DEFAULTS = {
+      bookingStartTime: '08:00',
+      bookingEndTime: '19:00',
+      maxAdvanceDays: 30,
+      maxDurationHours: 4,
+      slotInterval: 30,
+      maxBookingsPerDay: 0,
+      holidays: [],
+      notifyOnBooking: true,
+      notifyOnCancel: true,
+      notifyBeforeMeeting: false,
+      notifyMinutesBefore: 15
+    };
+
+    let currentSettings = { ...DEFAULTS };
+
+    // ---- Load settings from Firestore ----
+    async function loadSettings() {
+      try {
+        const snap = await getDoc(settingsRef);
+        if (snap.exists()) {
+          currentSettings = { ...DEFAULTS, ...snap.data() };
+        }
+        applyToForm(currentSettings);
+      } catch (err) {
+        showToast('ไม่สามารถโหลดการตั้งค่าได้');
+      }
+    }
+
+    // ---- Apply settings to form ----
+    function applyToForm(s) {
+      $('#bookingStartTime').value = s.bookingStartTime;
+      $('#bookingEndTime').value = s.bookingEndTime;
+      $('#maxAdvanceDays').value = s.maxAdvanceDays;
+      $('#maxDurationHours').value = s.maxDurationHours;
+      $('#slotInterval').value = s.slotInterval;
+      $('#maxBookingsPerDay').value = s.maxBookingsPerDay;
+      $('#notifyOnBooking').checked = s.notifyOnBooking;
+      $('#notifyOnCancel').checked = s.notifyOnCancel;
+      $('#notifyBeforeMeeting').checked = s.notifyBeforeMeeting;
+      $('#notifyMinutesBefore').value = s.notifyMinutesBefore;
+      toggleNotifyMinutes();
+      renderHolidays(s.holidays || []);
+    }
+
+    // ---- Collect form values ----
+    function collectFromForm() {
+      return {
+        bookingStartTime: $('#bookingStartTime').value,
+        bookingEndTime: $('#bookingEndTime').value,
+        maxAdvanceDays: parseInt($('#maxAdvanceDays').value) || 30,
+        maxDurationHours: parseFloat($('#maxDurationHours').value) || 4,
+        slotInterval: parseInt($('#slotInterval').value) || 30,
+        maxBookingsPerDay: parseInt($('#maxBookingsPerDay').value) || 0,
+        holidays: currentSettings.holidays || [],
+        notifyOnBooking: $('#notifyOnBooking').checked,
+        notifyOnCancel: $('#notifyOnCancel').checked,
+        notifyBeforeMeeting: $('#notifyBeforeMeeting').checked,
+        notifyMinutesBefore: parseInt($('#notifyMinutesBefore').value) || 15
+      };
+    }
+
+    // ---- Save settings ----
+    async function saveSettings() {
+      const data = collectFromForm();
+      try {
+        await setDoc(settingsRef, { ...data, updatedAt: serverTimestamp() });
+        currentSettings = data;
+        showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว');
+      } catch (err) {
+        showToast('ไม่สามารถบันทึกได้: ' + err.message);
+      }
+    }
+
+    // ---- Holidays ----
+    function renderHolidays(holidays) {
+      const container = $('#holidayList');
+      if (!holidays.length) {
+        container.innerHTML = '<div class="text-center text-secondary py-3">ยังไม่มีวันหยุด</div>';
+        return;
+      }
+      // Sort by date
+      holidays.sort((a, b) => a.date.localeCompare(b.date));
+      container.innerHTML = '';
+      holidays.forEach((h, i) => {
+        const item = document.createElement('div');
+        item.className = 'holiday-item';
+
+        const left = document.createElement('div');
+        left.className = 'd-flex align-items-center gap-3';
+
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'date';
+        dateSpan.textContent = h.date;
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'label';
+        labelSpan.textContent = h.label || '(ไม่มีชื่อ)';
+
+        left.appendChild(dateSpan);
+        left.appendChild(labelSpan);
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-remove';
+        btn.title = 'ลบวันหยุดนี้';
+        btn.innerHTML = '<i class="bi bi-trash3"></i>';
+        btn.addEventListener('click', () => {
+          currentSettings.holidays.splice(i, 1);
+          renderHolidays(currentSettings.holidays);
+        });
+
+        item.appendChild(left);
+        item.appendChild(btn);
+        container.appendChild(item);
+      });
+    }
+
+    function addHoliday() {
+      const dateVal = $('#holidayDate').value;
+      const labelVal = $('#holidayLabel').value.trim();
+      if (!dateVal) {
+        showToast('กรุณาเลือกวันที่');
+        return;
+      }
+      // Check duplicate
+      if (currentSettings.holidays.some(h => h.date === dateVal)) {
+        showToast('วันที่นี้มีอยู่แล้ว');
+        return;
+      }
+      currentSettings.holidays.push({ date: dateVal, label: labelVal || '' });
+      renderHolidays(currentSettings.holidays);
+      $('#holidayDate').value = '';
+      $('#holidayLabel').value = '';
+    }
+
+    // ---- Toggle notify minutes ----
+    function toggleNotifyMinutes() {
+      const wrap = $('#notifyMinutesWrap');
+      if (wrap) wrap.style.display = $('#notifyBeforeMeeting').checked ? '' : 'none';
+    }
+
+    // ---- Events ----
+    $('#btnSave').addEventListener('click', saveSettings);
+    $('#btnReset').addEventListener('click', () => applyToForm(DEFAULTS));
+    $('#btnAddHoliday').addEventListener('click', addHoliday);
+    $('#notifyBeforeMeeting').addEventListener('change', toggleNotifyMinutes);
+
+    // Enter key in holiday fields
+    $('#holidayLabel').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addHoliday(); }
+    });
+
+    // ===== Profile =====
+    async function loadProfile(user) {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const data = snap.exists() ? snap.data() : {};
+      $('#profileName').value = data.name || '';
+      $('#profilePhone').value = data.phone || '';
+      $('#profileEmail').value = user.email || '';
+      $('#profileRole').value = data.role || 'viewer';
+    }
+
+    $('#btnSaveProfile').addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const name = $('#profileName').value.trim();
+      const phone = $('#profilePhone').value.trim();
+      if (!name) { showToast('กรุณากรอกชื่อ'); return; }
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { name, phone });
+        applyUserDisplay(name);
+        showToast('บันทึกโปรไฟล์เรียบร้อย');
+      } catch (err) {
+        showToast('บันทึกไม่สำเร็จ: ' + err.message);
+      }
+    });
+
+    // ===== Change Password =====
+    $('#btnChangePassword').addEventListener('click', async () => {
+      const newPwd = $('#newPassword').value;
+      const confirmPwd = $('#confirmPassword').value;
+      if (!newPwd || newPwd.length < 6) { showToast('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
+      if (newPwd !== confirmPwd) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
+      try {
+        await updatePassword(auth.currentUser, newPwd);
+        showToast('เปลี่ยนรหัสผ่านเรียบร้อย');
+        $('#newPassword').value = '';
+        $('#confirmPassword').value = '';
+      } catch (err) {
+        if (err.code === 'auth/requires-recent-login') {
+          showToast('กรุณาออกจากระบบแล้ว login ใหม่ก่อนเปลี่ยนรหัสผ่าน');
+        } else {
+          showToast('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + err.message);
+        }
+      }
+    });
+
+    // ===== Theme =====
+    function loadTheme() {
+      const saved = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-bs-theme', saved);
+      const radio = document.querySelector(`input[name="theme"][value="${saved}"]`);
+      if (radio) radio.checked = true;
+    }
+    document.querySelectorAll('input[name="theme"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const theme = e.target.value;
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        showToast(`เปลี่ยนธีมเป็น ${theme === 'dark' ? 'มืด' : 'สว่าง'} แล้ว`);
+      });
+    });
+    loadTheme();
+
+    // ===== Auth Guard =====
+    initAuthGuard((user, name, role) => {
+      // โปรไฟล์ — ทุก role
+      loadProfile(user);
+
+      // Admin section — ซ่อนถ้าไม่ใช่ admin
+      if (role !== 'admin') {
+        $('#adminSettingsSection').style.display = 'none';
+      } else {
+        loadSettings();
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

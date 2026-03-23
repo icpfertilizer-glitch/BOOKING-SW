@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th" data-bs-theme="light">
+<script>document.documentElement.setAttribute('data-bs-theme', localStorage.getItem('theme') || 'light');</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -70,15 +71,16 @@
         <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
         </ul>
     </li>
-    <li>
-        <a href="" class="menu-link"><span>⚙️</span> ตั้งค่า</a>
-    </li>
     </ul>
 
-
-      <div class="menu-section">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled">
+      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
   <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
+      </ul>
+
+      <div class="menu-section">อื่นๆ</div>
+      <ul class="menu-list list-unstyled">
+        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
       </ul>
 
       <hr class="my-4">
@@ -191,32 +193,13 @@
 
   <!-- Firebase -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import {
-      getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy,
-      serverTimestamp, doc, getDoc
+      collection, addDoc, updateDoc, onSnapshot, query, orderBy,
+      serverTimestamp, doc
     } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-    // ====== ตั้งค่า Firebase (ปรับตามโปรเจกต์ของคุณ) ======
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_G4hfiis6DjmPiwsh5-hnNKVztMfd_T4",
-      authDomain: "booking-sw.firebaseapp.com",
-      projectId: "booking-sw",
-      storageBucket: "booking-sw.firebasestorage.app",
-      messagingSenderId: "134246403096",
-      appId: "1:134246403096:web:900da94277e8b70c4cc76d"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-
-    const DEFAULT_ROLE = 'viewer';
-
-    // ====== Utils ======
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => document.querySelectorAll(sel);
+    import { db } from "./assets/js/firebase-config.js";
+    import { initAuthGuard, applyUserDisplay, applyRoleToUI, getUserData } from "./assets/js/auth-guard.js";
+    import { $, $$, escapeHTML, debounce } from "./assets/js/utils.js";
     const toastEl = $('#toast');
     let toast;
     document.addEventListener('DOMContentLoaded', () => {
@@ -229,73 +212,20 @@
     const showToast = (msg) => {
       const el = $('#toastBody');
       if (el && toast) { el.textContent = msg; toast.show(); }
-      console.log('[Toast]', msg);
     };
 
-    function safeFirstLetter(name){
-      if (typeof name !== 'string' || name.length === 0) return 'U';
-      return name.charAt(0).toUpperCase();
-    }
-
-    function applyUserDisplay(name) {
-      const display = (typeof name === 'string' && name) ? name : 'ผู้ใช้';
-      const nameEl = $('#userDisplayName');
-      if (nameEl) nameEl.textContent = display;
-      const menuNameEl = $('#menuUserName');
-      if (menuNameEl) menuNameEl.textContent = display;
-      const avatar = document.querySelector('.avatar-circle');
-      if (avatar) avatar.textContent = safeFirstLetter(display);
-    }
-
-    async function getUserData(uid){
-      const snap = await getDoc(doc(db, 'users', uid));
-      if(!snap.exists()) return { name:'ผู้ใช้', role: DEFAULT_ROLE };
-      const data = snap.data() || {};
-      const role = (typeof data.role === 'string' ? data.role : DEFAULT_ROLE).toLowerCase();
-      const name = (typeof data.name === 'string' && data.name) ? data.name : 'ผู้ใช้';
-      return { name, role };
-    }
-
-    function applyRoleToUI(role){
-      document.documentElement.setAttribute('data-role', role);
-      // ซ่อน element ที่กำหนด data-required-role ถ้าไม่มีสิทธิ์
-      $$('[data-required-role]').forEach(el=>{
-        const allowed = (el.getAttribute('data-required-role')||'').split(',').map(s=>s.trim().toLowerCase());
-        el.style.display = allowed.includes(role) ? '' : 'none';
-      });
-      // guard ทั้งหน้า
+    // ====== Auth Guard ======
+    initAuthGuard((user, name, role) => {
+      // guard ทั้งหน้าสำหรับ non-admin
       if(role !== 'admin'){
         const guard = $('#guard');
         if (guard) guard.classList.remove('d-none');
-        // ปิดเฉพาะฟอร์ม (ไม่แตะปุ่ม logout/เมนู)
         $$('#roomForm input, #roomForm button').forEach(el => {
           if (el.id !== 'btnRefresh') el.disabled = true;
         });
       }
-    }
-
-    // ====== Auth Guard ======
-    onAuthStateChanged(auth, async (user)=>{
-      if(!user){ window.location.href = 'index.html'; return; }
-      try {
-        const { name, role } = await getUserData(user.uid);
-        window.currentUser = { user, role, name };
-        applyUserDisplay(name);
-        applyRoleToUI(role);
-        initRoomsRealtime(); // ทั้ง admin และ non-admin อ่านได้
-      } catch (e) {
-        console.error('Failed to load user data:', e);
-        showToast('ไม่สามารถโหลดโปรไฟล์ผู้ใช้ได้');
-      }
+      initRoomsRealtime();
     });
-
-    const btnLogout = $('#btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', async ()=>{
-        await signOut(auth);
-        window.location.href = 'index.html';
-      });
-    }
 
     // ====== State ======
     const roomsRef = collection(db, 'meeting_rooms');
@@ -368,9 +298,6 @@
       }).join('');
     }
 
-    function escapeHTML(s=''){
-      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
 
     // ====== Form Handlers ======
     const btnReset = $('#btnReset');
@@ -419,8 +346,6 @@
         const payload = sendTimes
           ? { ...payloadBase, startTime: startTimeRaw, endTime: endTimeRaw }
           : payloadBase;
-
-        console.log('[Save payload]', payload);
 
         try{
           if(id){
@@ -485,7 +410,7 @@
 
     // ค้นหา/กรอง/รีเฟรช
     const qInput = $('#q');
-    if (qInput) qInput.addEventListener('input', renderRooms);
+    if (qInput) qInput.addEventListener('input', debounce(renderRooms, 300));
     const statusSel = $('#statusFilter');
     if (statusSel) statusSel.addEventListener('change', renderRooms);
     const btnRefresh = $('#btnRefresh');
