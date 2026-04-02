@@ -341,6 +341,122 @@
       transform: translateY(-1px);
     }
 
+    /* ===== Booking Hover Tooltip ===== */
+    .booking-tooltip {
+      position: fixed;
+      z-index: 99999;
+      pointer-events: none;
+      min-width: 240px;
+      max-width: 320px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 12px 40px rgba(102, 126, 234, 0.18), 0 4px 12px rgba(0,0,0,.08);
+      opacity: 0;
+      transform: translateY(6px) scale(.97);
+      transition: opacity .18s ease, transform .18s ease;
+      font-size: 13px;
+      color: #2d3748;
+      line-height: 1.5;
+    }
+    .booking-tooltip.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .booking-tooltip .tt-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(102, 126, 234, 0.12);
+    }
+    .booking-tooltip .tt-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .booking-tooltip .tt-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #2d3748;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .booking-tooltip .tt-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 3px 0;
+    }
+    .booking-tooltip .tt-row i {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-size: 12px;
+      opacity: .6;
+    }
+    .booking-tooltip .tt-label {
+      color: #718096;
+      font-size: 12px;
+      min-width: 50px;
+    }
+    .booking-tooltip .tt-value {
+      font-weight: 600;
+      color: #2d3748;
+    }
+    .booking-tooltip .tt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .booking-tooltip .tt-mine {
+      background: rgba(72, 187, 120, .12);
+      color: #2f855a;
+    }
+    .booking-tooltip .tt-other {
+      background: rgba(102, 126, 234, .10);
+      color: #5a67d8;
+    }
+
+    /* Tooltip dark mode */
+    [data-bs-theme="dark"] .booking-tooltip {
+      background: rgba(26, 32, 44, 0.92);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0,0,0,.2);
+      color: #e2e8f0;
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-header {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-title {
+      color: #f7fafc;
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-label {
+      color: #a0aec0;
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-value {
+      color: #e2e8f0;
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-mine {
+      background: rgba(72, 187, 120, .15);
+      color: #68d391;
+    }
+    [data-bs-theme="dark"] .booking-tooltip .tt-other {
+      background: rgba(102, 126, 234, .15);
+      color: #a3bffa;
+    }
+
     /* Week/Day (timeGrid) แน่นขึ้น */
     #calendar .fc-timegrid-slot {
       height: 1.8rem;
@@ -756,6 +872,8 @@
       <div class="col-12 col-xl-8">
         <div class="card p-3">
           <div id="calendar"></div>
+          <!-- Booking Hover Tooltip -->
+          <div id="bookingTooltip" class="booking-tooltip"></div>
         </div>
       </div>
 
@@ -1151,6 +1269,7 @@
         },
 
         eventClick: (arg) => {
+          hideBookingTooltip();
           const m = arg.event.extendedProps && arg.event.extendedProps.meeting;
           if (!m) return;
           const isOwner = currentUser && currentUser.user.uid === m.userId;
@@ -1159,10 +1278,100 @@
           // ✅ ให้ทุกคนสามารถเปิด modal ได้ แต่จะเป็นโหมด view หรือ edit ขึ้นอยู่กับสิทธิ์
           const mode = (isOwner || isAdmin) ? 'edit' : 'view';
           openBookingModal({ mode, meeting: m, roomId: m.roomId, roomName: m.roomName, date: m.date });
+        },
+
+        eventMouseEnter: (arg) => {
+          const m = arg.event.extendedProps && arg.event.extendedProps.meeting;
+          if (!m) return;
+          // Delay 400ms ก่อนแสดง tooltip เพื่อไม่ให้บังอีเวนต์ข้างเคียง
+          clearTimeout(tooltipTimeout);
+          tooltipTimeout = setTimeout(() => {
+            showBookingTooltip(arg.el, m, arg.event.extendedProps.mine);
+          }, 500);
+        },
+
+        eventMouseLeave: () => {
+          clearTimeout(tooltipTimeout);
+          hideBookingTooltip();
         }
       });
 
       calendar.render();
+    }
+
+    /* ===== Booking Tooltip Logic ===== */
+    let tooltipEl = null;
+    let tooltipTimeout = null;
+
+    function showBookingTooltip(targetEl, m, isMine) {
+      if (!tooltipEl) tooltipEl = document.getElementById('bookingTooltip');
+
+      const hue = hueFromString(m.roomId || '');
+      const roomData = rooms.find(r => r.id === m.roomId);
+      const floor = roomData ? (roomData.location || roomData.floor || roomData.level) : null;
+      const roomDisplay = floor ? `${m.roomName || 'ห้องประชุม'} ชั้น${floor}` : (m.roomName || 'ห้องประชุม');
+      const capacity = roomData ? (roomData.capacity || '') : '';
+
+      const ownerBadge = isMine
+        ? '<span class="tt-badge tt-mine"><i class="bi bi-person-fill"></i> ของฉัน</span>'
+        : '<span class="tt-badge tt-other"><i class="bi bi-person"></i> ผู้อื่น</span>';
+
+      tooltipEl.innerHTML = `
+        <div class="tt-header">
+          <span class="tt-color-dot" style="background:hsl(${hue} 65% 55%)"></span>
+          <span class="tt-title">${escapeHTML(m.title || 'ไม่มีหัวข้อ')}</span>
+          ${ownerBadge}
+        </div>
+        <div class="tt-row">
+          <i class="bi bi-clock"></i>
+          <span class="tt-label">เวลา</span>
+          <span class="tt-value">${escapeHTML(m.start)} – ${escapeHTML(m.end)}</span>
+        </div>
+        <div class="tt-row">
+          <i class="bi bi-door-open"></i>
+          <span class="tt-label">ห้อง</span>
+          <span class="tt-value">${escapeHTML(roomDisplay)}${capacity ? ' (' + escapeHTML(String(capacity)) + ' คน)' : ''}</span>
+        </div>
+        <div class="tt-row">
+          <i class="bi bi-calendar3"></i>
+          <span class="tt-label">วันที่</span>
+          <span class="tt-value">${escapeHTML(m.date)}</span>
+        </div>
+        ${m.bookerName ? `<div class="tt-row">
+          <i class="bi bi-person-badge"></i>
+          <span class="tt-label">ผู้จอง</span>
+          <span class="tt-value">${escapeHTML(m.bookerName)}</span>
+        </div>` : ''}
+        ${m.contact ? `<div class="tt-row">
+          <i class="bi bi-telephone"></i>
+          <span class="tt-label">ติดต่อ</span>
+          <span class="tt-value">${escapeHTML(m.contact)}</span>
+        </div>` : ''}
+      `;
+
+      // Position tooltip
+      const rect = targetEl.getBoundingClientRect();
+      const ttWidth = 280;
+      const ttHeight = tooltipEl.offsetHeight || 180;
+
+      let left = rect.left + rect.width / 2 - ttWidth / 2;
+      let top = rect.top - ttHeight - 8;
+
+      // Keep within viewport
+      if (left < 8) left = 8;
+      if (left + ttWidth > window.innerWidth - 8) left = window.innerWidth - ttWidth - 8;
+      if (top < 8) {
+        top = rect.bottom + 8; // show below if no space above
+      }
+
+      tooltipEl.style.left = left + 'px';
+      tooltipEl.style.top = top + 'px';
+      tooltipEl.classList.add('show');
+    }
+
+    function hideBookingTooltip() {
+      if (!tooltipEl) tooltipEl = document.getElementById('bookingTooltip');
+      tooltipEl.classList.remove('show');
     }
 
     // ================== Booking Modal Logic & สิทธิ์ ==================

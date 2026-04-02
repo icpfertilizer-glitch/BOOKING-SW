@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug with Chrome (Live Server)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:5500/bookings.html",
+      "webRoot": "${workspaceFolder}/public",
+      "sourceMaps": true
+    }
+  ]
+}
