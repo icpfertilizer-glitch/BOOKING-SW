@@ -944,8 +944,8 @@
   <script type="module">
     import {
       collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy,
-      serverTimestamp, doc, getDoc, where, getDocs
-    } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+      serverTimestamp, doc, getDoc, where, getDocs, runTransaction
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
     import { db } from "./assets/js/firebase-config.js";
     import { initAuthGuard } from "./assets/js/auth-guard.js";
     import { escapeHTML, $ } from "./assets/js/utils.js";
@@ -1389,11 +1389,11 @@
     }
 
     // ฟังก์ชันสำหรับโหมดสร้างใหม่ (ไม่มี preStart/preEnd)
-    async function fillTimeSelectsForCreate(roomId, dateStr) {
+    // ฟังก์ชันเดียวรองรับทั้ง create และ edit
+    async function fillTimeSelects(roomId, dateStr, { preStart = null, preEnd = null, excludeId = null } = {}) {
       const startSel = document.getElementById('startTime');
       const endSel = document.getElementById('endTime');
 
-      // Clear ทั้งหมด
       startSel.innerHTML = '';
       endSel.innerHTML = '';
       startSel.onchange = null;
@@ -1402,7 +1402,7 @@
       if (!roomId || !dateStr) { if (submitBtn) submitBtn.disabled = true; return; }
 
       const todayStr = toYmd(new Date());
-      const taken = await fetchDayMeetings(dateStr, roomId, null); // ไม่ exclude อะไร
+      const taken = await fetchDayMeetings(dateStr, roomId, excludeId);
 
       // สร้าง start time options
       let startMin = BOOKING_START;
@@ -1422,89 +1422,11 @@
         const opt = document.createElement('option');
         opt.value = s;
         opt.textContent = s;
-        if (isBusy) {
-          opt.disabled = true;
-          opt.style.background = '#888';
-          opt.style.color = '#fff';
-        }
+        if (isBusy) { opt.disabled = true; opt.style.background = '#888'; opt.style.color = '#fff'; }
         startSel.appendChild(opt);
       }
 
-      // เลือก option แรกที่ไม่ disabled
-      const firstAvailable = Array.from(startSel.options).find(o => !o.disabled);
-      if (firstAvailable) startSel.value = firstAvailable.value;
-
-      // สร้าง end time options
-      function rebuildEnds() {
-        endSel.innerHTML = '';
-        const sVal = startSel.value;
-        if (!sVal) { if (submitBtn) submitBtn.disabled = true; return; }
-        const sMin = toMin(sVal);
-        for (let m = sMin + SLOT_INTERVAL; m <= BOOKING_END; m += SLOT_INTERVAL) {
-          const e = minToHH(m);
-          const isBusy = taken.some(mtg => isOverlapping(sVal, e, mtg.start, mtg.end));
-          const opt = document.createElement('option');
-          opt.value = e;
-          opt.textContent = e;
-          if (isBusy) {
-            opt.disabled = true;
-            opt.style.background = '#888';
-            opt.style.color = '#fff';
-          }
-          endSel.appendChild(opt);
-        }
-        const firstAvailable = Array.from(endSel.options).find(o => !o.disabled);
-        if (firstAvailable) endSel.value = firstAvailable.value;
-        if (submitBtn) submitBtn.disabled = endSel.options.length === 0 || !firstAvailable;
-      }
-
-      startSel.onchange = rebuildEnds;
-      rebuildEnds();
-    }
-
-    // ฟังก์ชันสำหรับโหมดแก้ไข (มี preStart/preEnd)
-    async function fillTimeSelectsForEdit(roomId, dateStr, preStart, preEnd, excludeId) {
-      const startSel = document.getElementById('startTime');
-      const endSel = document.getElementById('endTime');
-
-      // Clear ทั้งหมด
-      startSel.innerHTML = '';
-      endSel.innerHTML = '';
-      startSel.onchange = null;
-
-      const submitBtn = bookingForm.querySelector('button[type="submit"]');
-      if (!roomId || !dateStr) { if (submitBtn) submitBtn.disabled = true; return; }
-
-      const todayStr = toYmd(new Date());
-      const taken = await fetchDayMeetings(dateStr, roomId, excludeId); // exclude การจองปัจจุบัน
-
-      // สร้าง start time options
-      let startMin = BOOKING_START;
-      if (dateStr === todayStr) {
-        const roundedNow = roundUpToNext30(toMin(nowHM()));
-        startMin = Math.max(BOOKING_START, Math.min(roundedNow, BOOKING_END - SLOT_INTERVAL));
-      }
-
-      let startCandidates = [];
-      for (let m = BOOKING_START; m <= BOOKING_END - SLOT_INTERVAL; m += SLOT_INTERVAL) startCandidates.push(minToHH(m));
-      if (dateStr === todayStr) {
-        startCandidates = startCandidates.filter(t => toMin(t) >= startMin);
-      }
-
-      for (const s of startCandidates) {
-        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + SLOT_INTERVAL), m.start, m.end));
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (isBusy) {
-          opt.disabled = true;
-          opt.style.background = '#888';
-          opt.style.color = '#fff';
-        }
-        startSel.appendChild(opt);
-      }
-
-      // ตั้งค่า preStart
+      // ตั้งค่า start
       if (preStart && Array.from(startSel.options).some(o => o.value === preStart && !o.disabled)) {
         startSel.value = preStart;
       } else {
@@ -1513,6 +1435,7 @@
       }
 
       // สร้าง end time options
+      let isFirstRebuild = true;
       function rebuildEnds() {
         endSel.innerHTML = '';
         const sVal = startSel.value;
@@ -1524,27 +1447,29 @@
           const opt = document.createElement('option');
           opt.value = e;
           opt.textContent = e;
-          if (isBusy) {
-            opt.disabled = true;
-            opt.style.background = '#888';
-            opt.style.color = '#fff';
-          }
+          if (isBusy) { opt.disabled = true; opt.style.background = '#888'; opt.style.color = '#fff'; }
           endSel.appendChild(opt);
         }
 
-        // ตั้งค่า preEnd ถ้าเป็นครั้งแรก
-        if (preEnd && Array.from(endSel.options).some(o => o.value === preEnd && !o.disabled)) {
+        // ตั้งค่า end
+        if (isFirstRebuild && preEnd && Array.from(endSel.options).some(o => o.value === preEnd && !o.disabled)) {
           endSel.value = preEnd;
         } else {
           const firstAvailable = Array.from(endSel.options).find(o => !o.disabled);
           if (firstAvailable) endSel.value = firstAvailable.value;
         }
+        isFirstRebuild = false;
         if (submitBtn) submitBtn.disabled = endSel.options.length === 0 || !endSel.value;
       }
 
       startSel.onchange = rebuildEnds;
       rebuildEnds();
     }
+
+    // Backward-compatible aliases
+    const fillTimeSelectsForCreate = (roomId, dateStr) => fillTimeSelects(roomId, dateStr);
+    const fillTimeSelectsForEdit = (roomId, dateStr, preStart, preEnd, excludeId) =>
+      fillTimeSelects(roomId, dateStr, { preStart, preEnd, excludeId });
 
     // ✅ ครึ่งชั่วโมง 08:00–18:00 + filter เฉพาะ "ตั้งแต่ตอนนี้" เมื่อเป็นวันนี้ (เก่า - เก็บไว้เพื่อ compatibility)
     window.fillTimeSelects = async function (roomId, dateStr, preStart = null, preEnd = null) {
@@ -1825,15 +1750,6 @@
         showPopup('กรุณากรอกข้อมูลให้ครบ'); return;
       }
 
-      // กันจองคาบเกี่ยว
-      try {
-        const overlap = await hasOverlap(dateStr, roomId, start, end, id || null);
-        if (overlap) { showPopup('ไม่สามารถบันทึกได้: ช่วงเวลานี้ถูกจองแล้วสำหรับห้องนี้'); return; }
-      } catch (err) {
-        console.error('overlap-check error', err);
-        showPopup('ไม่สามารถตรวจสอบการจองซ้ำได้ กรุณาลองใหม่'); return;
-      }
-
       // ✅ เช็คสิทธิ์ตอนบันทึก (แก้ไขได้เฉพาะผู้จองหรือแอดมิน)
       if (id && editingMeeting) {
         const canEdit = (currentUser.role === 'admin' || currentUser.user.uid === editingMeeting.userId);
@@ -1848,7 +1764,7 @@
         };
 
         if (id) {
-          // Preserve original userId/userName when admin edits someone else's booking
+          // Edit mode: overlap check + update in transaction
           if (editingMeeting) {
             payload.userId = editingMeeting.userId;
             payload.userName = editingMeeting.userName;
@@ -1856,12 +1772,29 @@
             payload.userId = currentUser.user.uid;
             payload.userName = currentUser.name;
           }
+          // Check overlap before update
+          const overlap = await hasOverlap(dateStr, roomId, start, end, id);
+          if (overlap) { showPopup('ไม่สามารถบันทึกได้: ช่วงเวลานี้ถูกจองแล้วสำหรับห้องนี้'); return; }
           await updateDoc(doc(db, 'meetings', id), payload);
           showToast('อัปเดตการจองแล้ว');
         } else {
+          // Create mode: atomic overlap check + write via transaction
           payload.userId = currentUser.user.uid;
           payload.userName = currentUser.name;
-          await addDoc(meetingsRef, { ...payload, createdAt: serverTimestamp() });
+          payload.createdAt = serverTimestamp();
+
+          const newDocRef = doc(collection(db, 'meetings'));
+          await runTransaction(db, async (transaction) => {
+            // Read all meetings on the same date atomically
+            const qDay = query(meetingsRef, where('date', '==', dateStr));
+            const snap = await getDocs(qDay);
+            const conflict = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
+              .filter(x => x.roomId === roomId)
+              .some(m => isOverlapping(start, end, m.start, m.end));
+            if (conflict) throw new Error('OVERLAP');
+            transaction.set(newDocRef, payload);
+          });
           showToast('จองสำเร็จ');
         }
         modal.hide();
@@ -1872,8 +1805,12 @@
           renderStatusPanelByRoom();
         }, 1000);
       } catch (err) {
-        console.error(err);
-        showPopup('บันทึกไม่สำเร็จ');
+        if (err.message === 'OVERLAP') {
+          showPopup('ไม่สามารถบันทึกได้: ช่วงเวลานี้ถูกจองแล้วสำหรับห้องนี้');
+        } else {
+          console.error(err);
+          showPopup('บันทึกไม่สำเร็จ: ' + (err.message || ''));
+        }
       }
     });
 

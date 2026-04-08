@@ -135,11 +135,15 @@
     <div class="settings-section">
       <h5><i class="bi bi-shield-lock"></i> เปลี่ยนรหัสผ่าน</h5>
       <div class="row g-3">
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <label class="form-label" for="currentPassword">รหัสผ่านเดิม <span class="text-danger">*</span></label>
+          <input type="password" id="currentPassword" class="form-control" placeholder="กรอกรหัสผ่านปัจจุบัน" autocomplete="current-password" />
+        </div>
+        <div class="col-md-4">
           <label class="form-label" for="newPassword">รหัสผ่านใหม่</label>
           <input type="password" id="newPassword" class="form-control" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label class="form-label" for="confirmPassword">ยืนยันรหัสผ่านใหม่</label>
           <input type="password" id="confirmPassword" class="form-control" placeholder="พิมพ์รหัสผ่านอีกครั้ง" autocomplete="new-password" />
         </div>
@@ -240,39 +244,6 @@
       </div>
     </div>
 
-    <!-- 3. การแจ้งเตือน -->
-    <div class="settings-section">
-      <h5><i class="bi bi-bell"></i> การแจ้งเตือน</h5>
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="notifyOnBooking" checked>
-        <label class="form-check-label" for="notifyOnBooking">
-          แจ้งเตือนเมื่อมีการจองใหม่
-        </label>
-      </div>
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="notifyOnCancel" checked>
-        <label class="form-check-label" for="notifyOnCancel">
-          แจ้งเตือนเมื่อมีการยกเลิกการจอง
-        </label>
-      </div>
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="notifyBeforeMeeting">
-        <label class="form-check-label" for="notifyBeforeMeeting">
-          แจ้งเตือนก่อนเวลาประชุม
-        </label>
-      </div>
-      <div class="col-md-6" id="notifyMinutesWrap" style="display:none;">
-        <label class="form-label" for="notifyMinutesBefore">แจ้งเตือนล่วงหน้า (นาที)</label>
-        <select id="notifyMinutesBefore" class="form-select">
-          <option value="5">5 นาที</option>
-          <option value="10">10 นาที</option>
-          <option value="15" selected>15 นาที</option>
-          <option value="30">30 นาที</option>
-          <option value="60">1 ชั่วโมง</option>
-        </select>
-      </div>
-    </div>
-
     <!-- Save Bar (Admin) -->
     <div class="save-bar d-flex justify-content-end gap-2">
       <button id="btnReset" class="btn btn-outline-secondary">
@@ -297,8 +268,8 @@
 
   <!-- Firebase + Logic -->
   <script type="module">
-    import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-    import { updatePassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { auth, db } from "./assets/js/firebase-config.js";
     import { initAuthGuard, applyUserDisplay } from "./assets/js/auth-guard.js";
     import { $ } from "./assets/js/utils.js";
@@ -324,10 +295,6 @@
       slotInterval: 30,
       maxBookingsPerDay: 0,
       holidays: [],
-      notifyOnBooking: true,
-      notifyOnCancel: true,
-      notifyBeforeMeeting: false,
-      notifyMinutesBefore: 15
     };
 
     let currentSettings = { ...DEFAULTS };
@@ -353,11 +320,6 @@
       $('#maxDurationHours').value = s.maxDurationHours;
       $('#slotInterval').value = s.slotInterval;
       $('#maxBookingsPerDay').value = s.maxBookingsPerDay;
-      $('#notifyOnBooking').checked = s.notifyOnBooking;
-      $('#notifyOnCancel').checked = s.notifyOnCancel;
-      $('#notifyBeforeMeeting').checked = s.notifyBeforeMeeting;
-      $('#notifyMinutesBefore').value = s.notifyMinutesBefore;
-      toggleNotifyMinutes();
       renderHolidays(s.holidays || []);
     }
 
@@ -371,10 +333,6 @@
         slotInterval: parseInt($('#slotInterval').value) || 30,
         maxBookingsPerDay: parseInt($('#maxBookingsPerDay').value) || 0,
         holidays: currentSettings.holidays || [],
-        notifyOnBooking: $('#notifyOnBooking').checked,
-        notifyOnCancel: $('#notifyOnCancel').checked,
-        notifyBeforeMeeting: $('#notifyBeforeMeeting').checked,
-        notifyMinutesBefore: parseInt($('#notifyMinutesBefore').value) || 15
       };
     }
 
@@ -451,17 +409,10 @@
       $('#holidayLabel').value = '';
     }
 
-    // ---- Toggle notify minutes ----
-    function toggleNotifyMinutes() {
-      const wrap = $('#notifyMinutesWrap');
-      if (wrap) wrap.style.display = $('#notifyBeforeMeeting').checked ? '' : 'none';
-    }
-
     // ---- Events ----
     $('#btnSave').addEventListener('click', saveSettings);
     $('#btnReset').addEventListener('click', () => applyToForm(DEFAULTS));
     $('#btnAddHoliday').addEventListener('click', addHoliday);
-    $('#notifyBeforeMeeting').addEventListener('change', toggleNotifyMinutes);
 
     // Enter key in holiday fields
     $('#holidayLabel').addEventListener('keypress', (e) => {
@@ -495,18 +446,24 @@
 
     // ===== Change Password =====
     $('#btnChangePassword').addEventListener('click', async () => {
+      const currentPwd = $('#currentPassword').value;
       const newPwd = $('#newPassword').value;
       const confirmPwd = $('#confirmPassword').value;
-      if (!newPwd || newPwd.length < 6) { showToast('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
-      if (newPwd !== confirmPwd) { showToast('รหัสผ่านไม่ตรงกัน'); return; }
+      if (!currentPwd) { showToast('กรุณากรอกรหัสผ่านเดิม'); return; }
+      if (!newPwd || newPwd.length < 6) { showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
+      if (newPwd !== confirmPwd) { showToast('รหัสผ่านใหม่ไม่ตรงกัน'); return; }
       try {
-        await updatePassword(auth.currentUser, newPwd);
+        const user = auth.currentUser;
+        const credential = EmailAuthProvider.credential(user.email, currentPwd);
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, newPwd);
         showToast('เปลี่ยนรหัสผ่านเรียบร้อย');
+        $('#currentPassword').value = '';
         $('#newPassword').value = '';
         $('#confirmPassword').value = '';
       } catch (err) {
-        if (err.code === 'auth/requires-recent-login') {
-          showToast('กรุณาออกจากระบบแล้ว login ใหม่ก่อนเปลี่ยนรหัสผ่าน');
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+          showToast('รหัสผ่านเดิมไม่ถูกต้อง');
         } else {
           showToast('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + err.message);
         }
