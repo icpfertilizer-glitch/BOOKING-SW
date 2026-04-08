@@ -785,76 +785,8 @@
 
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg border-bottom fixed-top bg-body">
-    <div class="container-fluid">
-      <button id="menuFab" class="btn btn-link p-0 me-3" aria-label="เมนู" aria-expanded="false">
-        <span class="menu-icon"></span>
-        <span class="menu-icon"></span>
-        <span class="menu-icon"></span>
-      </button>
-      <a class="navbar-brand fw-bold" href="#">Booking Calendar</a>
-
-      <div class="d-flex align-items-center gap-2 ms-auto">
-        <span id="userDisplayName" class="fw-semibold text-primary">ผู้ใช้</span>
-        <!-- ย้ายปุ่มเพิ่มการจองออกจาก Navbar ไปไว้ใน main ด้านล่าง -->
-        <button id="btnLogout" class="btn btn-danger btn-sm">ออกจากระบบ</button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Sidebar Overlay -->
-  <div id="menuOverlay" class="menu-overlay" aria-hidden="true">
-    <aside class="menu-drawer shadow-lg">
-      <div class="menu-header d-flex align-items-center justify-content-between mb-4">
-        <h5 class="fw-bold mb-0">เมนูระบบ</h5>
-        <button id="menuClose" class="btn btn-outline-secondary btn-sm">✕</button>
-      </div>
-      <div class="menu-section">Dashboard</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="dashboard.html" class="menu-link"><span>🏠</span> Dashboard</a></li>
-      </ul>
-
-      <div class="menu-section">ส่วนทั่วไป</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="bookings.html" class="menu-link"><span>🙍</span> จองห้องประชุม</a></li>
-      </ul>
-
-      <div class="menu-section" data-required-role="admin">ส่วนจัดการข้อมูล</div>
-      <ul class="menu-list list-unstyled" data-required-role="admin">
-        <li class="menu-dropdown">
-          <button class="menu-link d-flex justify-content-between align-items-center w-100">
-            <span>👥 จัดการ</span>
-            <span class="caret">▾</span>
-          </button>
-          <ul class="submenu list-unstyled">
-            <li><a href="Admin.html" class="menu-link">- การจัดการสิทธิ์</a></li>
-            <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
-          </ul>
-        </li>
-      </ul>
-
-      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
-        <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
-      </ul>
-
-      <div class="menu-section">อื่นๆ</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
-      </ul>
-
-      <hr class="my-4">
-
-      <div class="d-flex align-items-center gap-3">
-        <div class="avatar-circle">U</div>
-        <div>
-          <div class="fw-semibold" id="menuUserName">—</div>
-          <div class="text-secondary small">กำลังใช้งานอยู่</div>
-        </div>
-      </div>
-    </aside>
-  </div>
+  <div id="navbar-placeholder"></div>
+  <div id="sidebar-placeholder"></div>
 
   <!-- Main Content -->
   <main class="container-fluid px-3 px-md-4">
@@ -1010,16 +942,15 @@
 
   <!-- Firebase + App -->
   <script type="module">
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import {
       collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy,
       serverTimestamp, doc, getDoc, where, getDocs
     } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-    import { auth, db } from "./assets/js/firebase-config.js";
-    import { escapeHTML } from "./assets/js/utils.js";
+    import { db } from "./assets/js/firebase-config.js";
+    import { initAuthGuard } from "./assets/js/auth-guard.js";
+    import { escapeHTML, $ } from "./assets/js/utils.js";
 
     // ---- UI helpers ----
-    const $ = (s) => document.querySelector(s);
     let toast;
     document.addEventListener('DOMContentLoaded', () => {
       // eslint-disable-next-line no-undef
@@ -1029,30 +960,7 @@
     const showPopup = (m) => { $('#alertText').textContent = m; /* eslint-disable-next-line no-undef */ new bootstrap.Modal($('#alertModal')).show(); };
 
     // ---- Role / User ----
-    const DEFAULT_ROLE = 'viewer';
     let currentUser = null;  // {user, role, name}
-    async function getUserData(uid) {
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (!snap.exists()) return { name: 'ผู้ใช้', role: DEFAULT_ROLE };
-      const data = snap.data() || {};
-      return { name: data.name || 'ผู้ใช้', role: (data.role || DEFAULT_ROLE).toLowerCase() };
-    }
-    function applyUserDisplay(name) {
-      $('#userDisplayName').textContent = name || 'ผู้ใช้';
-      $('#menuUserName').textContent = name || 'ผู้ใช้';
-      const av = document.querySelector('.avatar-circle');
-      if (av) av.textContent = (name && name[0]) ? name[0].toUpperCase() : 'U';
-      // แสดงชื่อผู้ดำเนินการใน modal
-      const opName = document.getElementById('loginOperatorName');
-      if (opName) opName.textContent = name || 'ผู้ใช้';
-    }
-    function applyRoleToUI(role) {
-      document.documentElement.setAttribute('data-role', role);
-      document.querySelectorAll('[data-required-role]').forEach(el => {
-        const allowed = (el.getAttribute('data-required-role') || '').split(',').map(s => s.trim().toLowerCase());
-        el.style.display = allowed.includes(role) ? '' : 'none';
-      });
-    }
 
     // ---- Date & Time utils (รวมศูนย์และประกาศก่อนใช้งาน) ----
     const fmt2 = (n) => String(n).padStart(2, '0');
@@ -1088,18 +996,13 @@
     const meetingsRef = collection(db, 'meetings');
 
     // ---- Auth ----
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = 'index.html'; return; }
-      const { name, role } = await getUserData(user.uid);
+    initAuthGuard(async (user, name, role) => {
       currentUser = { user, role, name };
-      applyUserDisplay(name);
-      applyRoleToUI(role);
+      // แสดงชื่อผู้ดำเนินการใน modal
+      const opName = document.getElementById('loginOperatorName');
+      if (opName) opName.textContent = name || 'ผู้ใช้';
       await loadBookingSettings();
       init();
-    });
-
-    $('#btnLogout')?.addEventListener('click', async () => {
-      await signOut(auth); window.location.href = 'index.html';
     });
 
     // ===== สี (hue) จาก id ห้อง =====

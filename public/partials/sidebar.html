@@ -1,0 +1,52 @@
+<div id="menuOverlay" class="menu-overlay" aria-hidden="true">
+  <aside class="menu-drawer shadow-lg">
+    <div class="menu-header d-flex align-items-center justify-content-between mb-4">
+      <h5 class="fw-bold mb-0">เมนูระบบ</h5>
+      <button id="menuClose" class="btn btn-outline-secondary btn-sm">&#10005;</button>
+    </div>
+
+    <div class="menu-section">Dashboard</div>
+    <ul class="menu-list list-unstyled">
+      <li><a href="dashboard.html" class="menu-link"><span>&#127968;</span> Dashboard</a></li>
+    </ul>
+
+    <div class="menu-section">ส่วนทั่วไป</div>
+    <ul class="menu-list list-unstyled">
+      <li><a href="bookings.html" class="menu-link"><span>&#128109;</span> จองห้องประชุม</a></li>
+    </ul>
+
+    <div class="menu-section" data-required-role="admin">ส่วนจัดการข้อมูล</div>
+    <ul class="menu-list list-unstyled" data-required-role="admin">
+      <li class="menu-dropdown">
+        <button class="menu-link d-flex justify-content-between align-items-center w-100">
+          <span>&#128101; จัดการ</span>
+          <span class="caret">&#9662;</span>
+        </button>
+        <ul class="submenu list-unstyled">
+          <li><a href="Admin.html" class="menu-link">- การจัดการสิทธิ์</a></li>
+          <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
+    <ul class="menu-list list-unstyled" data-required-role="admin,manager">
+      <li><a href="reportsummarize.html" class="menu-link"><span>&#128202;</span> รายงานภาพรวม</a></li>
+    </ul>
+
+    <div class="menu-section">อื่นๆ</div>
+    <ul class="menu-list list-unstyled">
+      <li><a href="settings.html" class="menu-link"><span>&#9881;&#65039;</span> ตั้งค่า</a></li>
+    </ul>
+
+    <hr class="my-4">
+
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar-circle">U</div>
+      <div>
+        <div class="fw-semibold" id="menuUserName">—</div>
+        <div class="text-secondary small">กำลังใช้งานอยู่</div>
+      </div>
+    </div>
+  </aside>
+</div>

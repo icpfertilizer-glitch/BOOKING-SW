@@ -18,68 +18,8 @@
   </style>
 </head>
 <body>
-  <!-- Navbar แบบเดียวกับหน้าอื่นๆ -->
-  <nav class="navbar navbar-expand-lg border-bottom fixed-top bg-body">
-    <div class="container-fluid">
-      <button id="menuFab" class="btn btn-link p-0 me-3" aria-label="เมนู" aria-expanded="false">
-        <span class="menu-icon"></span>
-        <span class="menu-icon"></span>
-        <span class="menu-icon"></span>
-      </button>
-      <a class="navbar-brand fw-bold" href="#">รายงานภาพรวม</a>
-      <div class="d-flex align-items-center gap-2 ms-auto">
-        <span id="userDisplayName" class="fw-semibold text-primary">ผู้ใช้</span>
-        <button id="btnLogout" class="btn btn-danger btn-sm">ออกจากระบบ</button>
-      </div>
-    </div>
-  </nav>
-  <!-- Sidebar Overlay -->
-  <div id="menuOverlay" class="menu-overlay" aria-hidden="true">
-    <aside class="menu-drawer shadow-lg">
-      <div class="menu-header d-flex align-items-center justify-content-between mb-4">
-        <h5 class="fw-bold mb-0">เมนูระบบ</h5>
-        <button id="menuClose" class="btn btn-outline-secondary btn-sm">✕</button>
-      </div>
-      <div class="menu-section">Dashboard</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="dashboard.html" class="menu-link"><span>🏠</span> Dashboard</a></li>
-      </ul>
-      <div class="menu-section">ส่วนทั่วไป</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="bookings.html" class="menu-link"><span>🙍</span> จองห้องประชุม</a></li>
-      </ul>
-      <div class="menu-section" data-required-role="admin">ส่วนจัดการข้อมูล</div>
-      <ul class="menu-list list-unstyled" data-required-role="admin">
-        <li class="menu-dropdown">
-          <button class="menu-link d-flex justify-content-between align-items-center w-100">
-            <span>👥 จัดการ</span>
-            <span class="caret">▾</span>
-          </button>
-          <ul class="submenu list-unstyled">
-            <li><a href="Admin.html" class="menu-link">- การจัดการสิทธิ์</a></li>
-            <li><a href="meeting-rooms.html" class="menu-link">- จัดการห้องประชุม</a></li>
-          </ul>
-        </li>
-      </ul>
-      <div class="menu-section" data-required-role="admin,manager">ส่วนรายงาน</div>
-      <ul class="menu-list list-unstyled" data-required-role="admin,manager">
-        <li><a href="reportsummarize.html" class="menu-link"><span>📊</span> รายงานภาพรวม</a></li>
-      </ul>
-
-      <div class="menu-section">อื่นๆ</div>
-      <ul class="menu-list list-unstyled">
-        <li><a href="settings.html" class="menu-link"><span>⚙️</span> ตั้งค่า</a></li>
-      </ul>
-      <hr class="my-4">
-      <div class="d-flex align-items-center gap-3">
-        <div class="avatar-circle">U</div>
-        <div>
-          <div class="fw-semibold" id="menuUserName">—</div>
-          <div class="text-secondary small">กำลังใช้งานอยู่</div>
-        </div>
-      </div>
-    </aside>
-  </div>
+  <div id="navbar-placeholder"></div>
+  <div id="sidebar-placeholder"></div>
   <main class="container-fluid px-3 px-md-4" style="padding-top:80px;">
     <h2 class="fw-bold mb-3">รายงานภาพรวมการจองห้องประชุม</h2>
     <div class="row g-3 mb-4">
@@ -159,7 +99,7 @@
     </div>
   </main>
   <script type="module">
-    import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { collection, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
     import { db } from "./assets/js/firebase-config.js";
     import { initAuthGuard } from "./assets/js/auth-guard.js";
     import { $, escapeHTML } from "./assets/js/utils.js";
@@ -167,6 +107,7 @@
     let currentUser = null;
     const roomsRef = collection(db, 'meeting_rooms');
     const meetingsRef = collection(db, 'meetings');
+    const PAGE_SIZE = 500; // Firestore batch size limit
     // --- UI Elements ---
     const bookingsTableBody = $('#bookingsTable tbody');
     const bookingsChartEl = $('#bookingsChart');
@@ -176,6 +117,9 @@
     let bookings = [];
     // --- Chart.js ---
     let bookingsChart, roomsPieChart;
+    // --- Table pagination ---
+    const TABLE_PAGE_SIZE = 50;
+    let tablePage = 0;
 
     // --- Set default date range to MTD ---
     function setDefaultMTD() {
@@ -199,19 +143,38 @@
         roomFilter.appendChild(opt);
       });
     }
-    // --- Load Bookings ---
+    // --- Load Bookings (paginated Firestore reads) ---
     async function loadBookings() {
       const dateStart = $('#dateStart').value;
       const dateEnd = $('#dateEnd').value;
       const roomId = $('#roomFilter').value;
       const userFilter = $('#userFilter').value.trim();
-      let q = query(meetingsRef, orderBy('date'));
-      if (dateStart) q = query(q, where('date', '>=', dateStart));
-      if (dateEnd) q = query(q, where('date', '<=', dateEnd));
-      const snap = await getDocs(q);
-      bookings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Fetch in batches of PAGE_SIZE to avoid huge single reads
+      bookings = [];
+      let lastDoc = null;
+      let hasMore = true;
+      while (hasMore) {
+        let q = query(meetingsRef, orderBy('date'), limit(PAGE_SIZE));
+        if (dateStart) q = query(meetingsRef, orderBy('date'), where('date', '>=', dateStart), where('date', '<=', dateEnd || '9999-12-31'), limit(PAGE_SIZE));
+        if (lastDoc) {
+          if (dateStart) {
+            q = query(meetingsRef, orderBy('date'), where('date', '>=', dateStart), where('date', '<=', dateEnd || '9999-12-31'), startAfter(lastDoc), limit(PAGE_SIZE));
+          } else {
+            q = query(meetingsRef, orderBy('date'), startAfter(lastDoc), limit(PAGE_SIZE));
+          }
+        }
+        const snap = await getDocs(q);
+        snap.docs.forEach(d => bookings.push({ id: d.id, ...d.data() }));
+        lastDoc = snap.docs[snap.docs.length - 1] || null;
+        hasMore = snap.docs.length === PAGE_SIZE;
+      }
+
+      // Client-side filters
       if (roomId) bookings = bookings.filter(b => b.roomId === roomId);
       if (userFilter) bookings = bookings.filter(b => (b.bookerName || b.userName || '').includes(userFilter));
+
+      tablePage = 0;
       renderSummary();
       renderCharts();
       renderTable();
@@ -220,7 +183,8 @@
     function renderSummary() {
       $('#totalBookings').textContent = bookings.length;
       $('#totalRooms').textContent = [...new Set(bookings.map(b => b.roomId))].length;
-      $('#totalUsers').textContent = [...new Set(bookings.map(b => b.bookerName || b.userName))].length;
+      // Use userId for accurate distinct count (L5 fix)
+      $('#totalUsers').textContent = [...new Set(bookings.map(b => b.userId || b.bookerName || b.userName))].length;
     }
     // --- Render Charts ---
     function renderCharts() {
@@ -247,27 +211,63 @@
         options: { plugins: { legend: { position: 'bottom' } } }
       });
     }
-    // --- Render Table ---
+    // --- Render Table (paginated) ---
     function renderTable() {
       bookingsTableBody.innerHTML = '';
-      bookings.forEach(b => {
-        const tr = document.createElement('tr');
-        const fields = [
-          b.date || '',
-          `${b.start || ''}–${b.end || ''}`,
-          rooms.find(r => r.id === b.roomId)?.name || b.roomName || '',
-          b.bookerName || b.userName || '',
-          b.title || '',
-          b.contact || '',
-          b.status || 'ยืนยัน'
-        ];
-        fields.forEach(text => {
-          const td = document.createElement('td');
-          td.textContent = text;
-          tr.appendChild(td);
+      const start = tablePage * TABLE_PAGE_SIZE;
+      const end = Math.min(start + TABLE_PAGE_SIZE, bookings.length);
+      const pageData = bookings.slice(start, end);
+
+      if (pageData.length === 0) {
+        bookingsTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-secondary py-3">ไม่พบข้อมูล</td></tr>';
+      } else {
+        pageData.forEach(b => {
+          const tr = document.createElement('tr');
+          const fields = [
+            b.date || '',
+            `${b.start || ''}–${b.end || ''}`,
+            rooms.find(r => r.id === b.roomId)?.name || b.roomName || '',
+            b.bookerName || b.userName || '',
+            b.title || '',
+            b.contact || '',
+            b.status || 'ยืนยัน'
+          ];
+          fields.forEach(text => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          bookingsTableBody.appendChild(tr);
         });
-        bookingsTableBody.appendChild(tr);
-      });
+      }
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      let paginationEl = document.getElementById('tablePagination');
+      if (!paginationEl) {
+        paginationEl = document.createElement('div');
+        paginationEl.id = 'tablePagination';
+        paginationEl.className = 'd-flex justify-content-between align-items-center mt-2';
+        $('#bookingsTable').parentElement.after(paginationEl);
+      }
+
+      const totalPages = Math.max(1, Math.ceil(bookings.length / TABLE_PAGE_SIZE));
+      const start = tablePage * TABLE_PAGE_SIZE + 1;
+      const end = Math.min((tablePage + 1) * TABLE_PAGE_SIZE, bookings.length);
+
+      paginationEl.innerHTML = `
+        <span class="text-secondary small">แสดง ${bookings.length > 0 ? start : 0}–${end} จาก ${bookings.length} รายการ</span>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" id="pgPrev" ${tablePage === 0 ? 'disabled' : ''}>&#9664; ก่อนหน้า</button>
+          <span class="btn btn-sm btn-light disabled">${tablePage + 1} / ${totalPages}</span>
+          <button class="btn btn-sm btn-outline-secondary" id="pgNext" ${tablePage >= totalPages - 1 ? 'disabled' : ''}>ถัดไป &#9654;</button>
+        </div>
+      `;
+
+      document.getElementById('pgPrev')?.addEventListener('click', () => { if (tablePage > 0) { tablePage--; renderTable(); } });
+      document.getElementById('pgNext')?.addEventListener('click', () => { if (tablePage < totalPages - 1) { tablePage++; renderTable(); } });
     }
     // --- Export Excel (.xlsx) ---
     $('#btnExport').addEventListener('click', () => {
