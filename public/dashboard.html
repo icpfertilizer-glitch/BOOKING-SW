@@ -554,7 +554,7 @@
       const div=document.createElement("div");
       div.className="section-label";
       div.style.setProperty("--h", h);
-      div.innerHTML=`<i class="bi ${icon}"></i> ${text}`;
+      div.innerHTML=`<i class="bi ${escapeHTML(icon)}"></i> ${escapeHTML(text)}`;
       return div;
     }
 
@@ -679,8 +679,8 @@
           if (floor || cap){
             const meta=document.createElement("div");
             meta.className="meta-info";
-            if (floor) meta.innerHTML += `<span class="meta-pill"><i class="bi bi-building"></i> ชั้น ${floor}</span>`;
-            if (cap || cap===0) meta.innerHTML += `<span class="meta-pill"><i class="bi bi-people"></i> ${cap} คน</span>`;
+            if (floor) meta.innerHTML += `<span class="meta-pill"><i class="bi bi-building"></i> ชั้น ${escapeHTML(String(floor))}</span>`;
+            if (cap || cap===0) meta.innerHTML += `<span class="meta-pill"><i class="bi bi-people"></i> ${escapeHTML(String(cap))} คน</span>`;
             meta.innerHTML += `<span class="meta-pill"><i class="bi bi-calendar3"></i> วันนี้</span>`;
             card.appendChild(meta);
           }

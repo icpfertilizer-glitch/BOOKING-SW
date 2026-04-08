@@ -219,7 +219,7 @@
   <!-- Firebase + Auth -->
   <script type="module">
     import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-    import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
     import { db, auth } from "./assets/js/firebase-config.js";
@@ -325,29 +325,6 @@
       new bootstrap.Modal($('#editUserModal')).show();
     }
 
-    $('#btnSaveEdit').addEventListener('click', async () => {
-      const uid = $('#editUid').value;
-      const name = $('#editName').value.trim();
-      const role = $('#editRole').value;
-      const errEl = $('#editUserError');
-
-      if (!name) {
-        errEl.textContent = 'กรุณากรอกชื่อ-นามสกุล';
-        errEl.style.display = '';
-        return;
-      }
-
-      try {
-        await updateDoc(doc(db, 'users', uid), { name, role });
-        bootstrap.Modal.getInstance($('#editUserModal')).hide();
-        if (dataTable) { dataTable.destroy(); dataTable = null; }
-        await loadUsers();
-      } catch (err) {
-        errEl.textContent = 'ไม่สามารถบันทึกได้: ' + err.message;
-        errEl.style.display = '';
-      }
-    });
-
     // ---- Delete User ----
     function openDeleteModal(uid, user) {
       $('#deleteUid').value = uid;
@@ -356,21 +333,45 @@
       new bootstrap.Modal($('#deleteUserModal')).show();
     }
 
-    $('#btnConfirmDelete').addEventListener('click', async () => {
-      const uid = $('#deleteUid').value;
-      try {
-        await deleteDoc(doc(db, 'users', uid));
-        bootstrap.Modal.getInstance($('#deleteUserModal')).hide();
-        if (dataTable) { dataTable.destroy(); dataTable = null; }
-        await loadUsers();
-      } catch (err) {
-        alert('ไม่สามารถลบผู้ใช้ได้: ' + err.message);
-      }
-    });
+    // ---- Attach event listeners only after auth is confirmed ----
+    function initEventListeners() {
+      $('#btnSaveEdit').addEventListener('click', async () => {
+        const uid = $('#editUid').value;
+        const name = $('#editName').value.trim();
+        const role = $('#editRole').value;
+        const errEl = $('#editUserError');
 
-    // ---- Add User Form ----
-    const addUserForm = document.getElementById('addUserForm');
-    if (addUserForm) {
+        if (!name) {
+          errEl.textContent = 'กรุณากรอกชื่อ-นามสกุล';
+          errEl.style.display = '';
+          return;
+        }
+
+        try {
+          await updateDoc(doc(db, 'users', uid), { name, role });
+          bootstrap.Modal.getInstance($('#editUserModal')).hide();
+          if (dataTable) { dataTable.destroy(); dataTable = null; }
+          await loadUsers();
+        } catch (err) {
+          errEl.textContent = 'ไม่สามารถบันทึกได้: ' + err.message;
+          errEl.style.display = '';
+        }
+      });
+
+      $('#btnConfirmDelete').addEventListener('click', async () => {
+        const uid = $('#deleteUid').value;
+        try {
+          await deleteDoc(doc(db, 'users', uid));
+          bootstrap.Modal.getInstance($('#deleteUserModal')).hide();
+          if (dataTable) { dataTable.destroy(); dataTable = null; }
+          await loadUsers();
+        } catch (err) {
+          alert('ไม่สามารถลบผู้ใช้ได้: ' + err.message);
+        }
+      });
+
+      const addUserForm = document.getElementById('addUserForm');
+      if (addUserForm) {
       addUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const errEl = $('#addUserError');
@@ -405,28 +406,32 @@
         const adminUser = auth.currentUser;
         const adminEmail = adminUser.email;
 
+        let secondaryApp = null;
+        let secondaryAuth = null;
         try {
           // Use secondary app to create user without signing out admin
-          const secondaryApp = initializeApp(
+          secondaryApp = initializeApp(
             { apiKey: auth.app.options.apiKey, authDomain: auth.app.options.authDomain, projectId: auth.app.options.projectId },
             'secondary-' + Date.now()
           );
-          const secondaryAuth = getAuth(secondaryApp);
+          secondaryAuth = getAuth(secondaryApp);
 
           const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
           const uid = cred.user.uid;
 
-          // Create user doc in Firestore
-          await setDoc(doc(db, 'users', uid), {
-            name,
-            email,
-            role,
-            createdAt: new Date().toISOString()
-          });
-
-          // Sign out from secondary app & delete it
-          await secondaryAuth.signOut();
-          await secondaryApp.delete();
+          // Create user doc in Firestore — if this fails, roll back the auth user
+          try {
+            await setDoc(doc(db, 'users', uid), {
+              name,
+              email,
+              role,
+              createdAt: new Date().toISOString()
+            });
+          } catch (fsErr) {
+            // Roll back: delete the auth user that was just created
+            await cred.user.delete();
+            throw fsErr;
+          }
 
           successEl.textContent = `เพิ่มผู้ใช้ "${name}" (${email}) สำเร็จแล้ว`;
           successEl.style.display = '';
@@ -443,11 +448,17 @@
           else msg += err.message;
           errEl.textContent = msg;
           errEl.style.display = '';
+        } finally {
+          // Always clean up secondary app to prevent memory leaks
+          if (secondaryAuth) try { await secondaryAuth.signOut(); } catch(_){}
+          if (secondaryApp) try { await secondaryApp.delete(); } catch(_){}
         }
       });
-    }
+      }
+    } // end initEventListeners
 
     initAuthGuard(async () => {
+      initEventListeners();
       await loadUsers();
     });
   </script>

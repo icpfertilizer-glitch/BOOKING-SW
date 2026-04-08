@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Helper functions =====
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'Admin';
+    }
+
+    function isAdminOrManager() {
+      return isSignedIn() && getUserRole() in ['Admin', 'Manager'];
+    }
+
+    // ===== Users collection =====
+    match /users/{uid} {
+      // Anyone signed in can read user list (needed for display names, etc.)
+      allow read: if isSignedIn();
+
+      // Only the user themselves can update their own profile fields (name, phone, theme)
+      // But NOT the role field
+      allow update: if isSignedIn()
+        && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+
+      // Admin can create, update (including role), and delete any user
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== Meeting rooms =====
+    match /meeting_rooms/{roomId} {
+      // Anyone signed in can read rooms
+      allow read: if isSignedIn();
+
+      // Only Admin can create, update, delete rooms
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== Meetings (bookings) =====
+    match /meetings/{meetingId} {
+      // Anyone signed in can read all meetings (needed for calendar)
+      allow read: if isSignedIn();
+
+      // Signed-in users can create bookings (userId must match their own)
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      // Owner can update/delete their own booking, Admin can update/delete any
+      allow update, delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ===== Settings =====
+    match /settings/{docId} {
+      // Anyone signed in can read settings
+      allow read: if isSignedIn();
+
+      // Only Admin can write settings
+      allow write: if isAdmin();
+    }
+
+    // ===== Deny everything else =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

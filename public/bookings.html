@@ -1065,6 +1065,23 @@
     const nowHM = () => { const d = new Date(); return `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}`; };
     const hm2m = toMin;
 
+    // ---- Booking settings (loaded from Firestore, fallback to defaults) ----
+    let BOOKING_START = 8 * 60;   // 08:00
+    let BOOKING_END   = 19 * 60;  // 19:00
+    let SLOT_INTERVAL = 30;       // minutes
+
+    async function loadBookingSettings() {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'booking'));
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.bookingStartTime) BOOKING_START = toMin(d.bookingStartTime);
+          if (d.bookingEndTime)   BOOKING_END   = toMin(d.bookingEndTime);
+          if (d.slotInterval)     SLOT_INTERVAL = +d.slotInterval || 30;
+        }
+      } catch(_) { /* use defaults */ }
+    }
+
     // ---- State ----
     let rooms = [];
     const roomsRef = collection(db, 'meeting_rooms');
@@ -1077,6 +1094,7 @@
       currentUser = { user, role, name };
       applyUserDisplay(name);
       applyRoleToUI(role);
+      await loadBookingSettings();
       init();
     });
 
@@ -1480,26 +1498,24 @@
       const submitBtn = bookingForm.querySelector('button[type="submit"]');
       if (!roomId || !dateStr) { if (submitBtn) submitBtn.disabled = true; return; }
 
-      const DAY_START = 8 * 60;
-      const DAY_END = 19 * 60;
       const todayStr = toYmd(new Date());
       const taken = await fetchDayMeetings(dateStr, roomId, null); // ไม่ exclude อะไร
 
       // สร้าง start time options
-      let startMin = DAY_START;
+      let startMin = BOOKING_START;
       if (dateStr === todayStr) {
         const roundedNow = roundUpToNext30(toMin(nowHM()));
-        startMin = Math.max(DAY_START, Math.min(roundedNow, DAY_END - 30));
+        startMin = Math.max(BOOKING_START, Math.min(roundedNow, BOOKING_END - SLOT_INTERVAL));
       }
 
       let startCandidates = [];
-      for (let m = DAY_START; m <= DAY_END - 30; m += 30) startCandidates.push(minToHH(m));
+      for (let m = BOOKING_START; m <= BOOKING_END - SLOT_INTERVAL; m += SLOT_INTERVAL) startCandidates.push(minToHH(m));
       if (dateStr === todayStr) {
         startCandidates = startCandidates.filter(t => toMin(t) >= startMin);
       }
 
       for (const s of startCandidates) {
-        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + 30), m.start, m.end));
+        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + SLOT_INTERVAL), m.start, m.end));
         const opt = document.createElement('option');
         opt.value = s;
         opt.textContent = s;
@@ -1521,7 +1537,7 @@
         const sVal = startSel.value;
         if (!sVal) { if (submitBtn) submitBtn.disabled = true; return; }
         const sMin = toMin(sVal);
-        for (let m = sMin + 30; m <= DAY_END; m += 30) {
+        for (let m = sMin + SLOT_INTERVAL; m <= BOOKING_END; m += SLOT_INTERVAL) {
           const e = minToHH(m);
           const isBusy = taken.some(mtg => isOverlapping(sVal, e, mtg.start, mtg.end));
           const opt = document.createElement('option');
@@ -1556,26 +1572,24 @@
       const submitBtn = bookingForm.querySelector('button[type="submit"]');
       if (!roomId || !dateStr) { if (submitBtn) submitBtn.disabled = true; return; }
 
-      const DAY_START = 8 * 60;
-      const DAY_END = 19 * 60;
       const todayStr = toYmd(new Date());
       const taken = await fetchDayMeetings(dateStr, roomId, excludeId); // exclude การจองปัจจุบัน
 
       // สร้าง start time options
-      let startMin = DAY_START;
+      let startMin = BOOKING_START;
       if (dateStr === todayStr) {
         const roundedNow = roundUpToNext30(toMin(nowHM()));
-        startMin = Math.max(DAY_START, Math.min(roundedNow, DAY_END - 30));
+        startMin = Math.max(BOOKING_START, Math.min(roundedNow, BOOKING_END - SLOT_INTERVAL));
       }
 
       let startCandidates = [];
-      for (let m = DAY_START; m <= DAY_END - 30; m += 30) startCandidates.push(minToHH(m));
+      for (let m = BOOKING_START; m <= BOOKING_END - SLOT_INTERVAL; m += SLOT_INTERVAL) startCandidates.push(minToHH(m));
       if (dateStr === todayStr) {
         startCandidates = startCandidates.filter(t => toMin(t) >= startMin);
       }
 
       for (const s of startCandidates) {
-        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + 30), m.start, m.end));
+        const isBusy = taken.some(m => isOverlapping(s, minToHH(toMin(s) + SLOT_INTERVAL), m.start, m.end));
         const opt = document.createElement('option');
         opt.value = s;
         opt.textContent = s;
@@ -1601,7 +1615,7 @@
         const sVal = startSel.value;
         if (!sVal) { if (submitBtn) submitBtn.disabled = true; return; }
         const sMin = toMin(sVal);
-        for (let m = sMin + 30; m <= DAY_END; m += 30) {
+        for (let m = sMin + SLOT_INTERVAL; m <= BOOKING_END; m += SLOT_INTERVAL) {
           const e = minToHH(m);
           const isBusy = taken.some(mtg => isOverlapping(sVal, e, mtg.start, mtg.end));
           const opt = document.createElement('option');
