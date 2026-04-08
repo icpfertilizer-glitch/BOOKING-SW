@@ -38,41 +38,20 @@
       box-sizing: border-box;
     }
 
-    /* ปรับความสูง dayGrid ให้พอดีกับ calendar */
-    #calendar .fc-daygrid-body {
-      height: 100% !important;
-      min-height: 0;
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #calendar .fc-daygrid-body>table {
-      height: 100% !important;
-      min-height: 0;
-      max-height: 100%;
-      table-layout: fixed;
-    }
-
-    #calendar .fc-daygrid-body>table>tbody>tr {
-      height: auto;
-    }
-
+    /* บังคับให้ทุกช่องวันสูงเท่ากัน */
     #calendar .fc-daygrid-day {
-      height: 100%;
       vertical-align: top;
     }
-
-    /* ปรับ dayGrid ให้พอดีกับ calendar */
-    #calendar .fc-daygrid-body,
     #calendar .fc-scroller {
-      flex: 1 1 auto;
-      height: 100% !important;
-      min-height: 0;
-      max-height: 100%;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
+      overflow: visible !important;
+    }
+    #calendar .fc-scroller-harness,
+    #calendar .fc-scroller-harness-liquid {
+      overflow: visible !important;
+    }
+    #calendar .fc-scroller-liquid-absolute {
+      position: relative !important;
+      overflow: visible !important;
     }
 
     :root {
@@ -825,7 +804,7 @@
 
     <div class="row g-3">
       <!-- Calendar -->
-      <div class="col-12 col-xl-8">
+      <div class="col-12 col-xl-9">
         <div class="card p-3">
           <div id="calendar"></div>
           <!-- Booking Hover Tooltip -->
@@ -834,7 +813,7 @@
       </div>
 
       <!-- สถานะห้องประชุม (วันนี้) -->
-      <div class="col-12 col-xl-4">
+      <div class="col-12 col-xl-3">
         <div id="statusCard" class="card p-3">
           <div class="panel-head d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2">
@@ -1160,7 +1139,7 @@
         height: 'auto',
         locale: 'th',
         firstDay: 0,
-        fixedWeekCount: false,        // ✅ แสดงเฉพาะสัปดาห์ที่จำเป็น ไม่บังคับ 6 สัปดาห์
+        fixedWeekCount: true,         // ✅ แสดง 6 สัปดาห์เสมอ ให้ช่องวันสูงเท่ากันทุกเดือน
         showNonCurrentDates: true,    // ✅ แสดงวันที่นอกเดือนปัจจุบัน (วันที่เทา)
         selectable: true,
         nowIndicator: true,
@@ -1168,7 +1147,7 @@
         slotMinTime: '08:00:00',
         slotMaxTime: '19:00:00',       // ✅ จำกัดถึง 18:00
         expandRows: true,
-        dayMaxEventRows: true,
+        dayMaxEvents: 4,
         eventOverlap: false,
         timeZone: 'local',
         displayEventTime: false,       // เราแสดงเวลาเอง
@@ -1248,7 +1227,57 @@
       });
 
       calendar.render();
+      equalizeCalendarRows();
     }
+
+    // บังคับให้ทุกแถวในปฏิทินสูงเท่ากัน
+    function equalizeCalendarRows() {
+      const table = document.querySelector('#calendar .fc-scrollgrid-sync-table');
+      if (!table) return;
+      const rows = table.querySelectorAll(':scope > tbody > tr');
+      if (rows.length === 0) return;
+
+      // 1) Reset inline height เพื่อวัดของจริง
+      table.style.height = 'auto';
+      rows.forEach(r => { r.style.height = 'auto'; });
+
+      // 2) วัดแถวที่สูงสุด
+      let maxH = 0;
+      rows.forEach(r => {
+        const h = r.getBoundingClientRect().height;
+        if (h > maxH) maxH = h;
+      });
+
+      // กำหนดขั้นต่ำ 100px ต่อแถว
+      maxH = Math.max(maxH, 100);
+
+      // 3) บังคับทุกแถวสูงเท่ากัน
+      const totalH = Math.ceil(maxH) * rows.length;
+      table.style.height = totalH + 'px';
+      rows.forEach(r => { r.style.height = Math.ceil(maxH) + 'px'; });
+
+      // 4) บังคับ td ทุกตัวให้สูงเต็มแถว
+      rows.forEach(r => {
+        r.querySelectorAll('td').forEach(td => {
+          td.style.height = Math.ceil(maxH) + 'px';
+        });
+      });
+    }
+
+    // เรียกหลัง events โหลด + เมื่อเปลี่ยน view/เดือน
+    let _eqTimer = null;
+    function scheduleEqualize() {
+      clearTimeout(_eqTimer);
+      _eqTimer = setTimeout(equalizeCalendarRows, 200);
+    }
+
+    // MutationObserver จับทุกการเปลี่ยนแปลงใน calendar body
+    requestAnimationFrame(() => {
+      const target = document.querySelector('#calendar .fc-view-harness') || document.querySelector('#calendar');
+      if (target) {
+        new MutationObserver(scheduleEqualize).observe(target, { childList: true, subtree: true, attributes: true });
+      }
+    });
 
     /* ===== Booking Tooltip Logic ===== */
     let tooltipEl = null;
