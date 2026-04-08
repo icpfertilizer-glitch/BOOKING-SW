@@ -102,8 +102,8 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, body::before, body::after {
-    transition: none !important;
+  /* ลดเฉพาะ decorative animations (background orbs) ไม่ kill ทั้งหมด */
+  body::before, body::after {
     animation: none !important;
   }
 }
@@ -117,6 +117,11 @@ body::after {
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--glass-border) !important;
   box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  animation: navSlideDown .5s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes navSlideDown {
+  from { opacity: 0; transform: translateY(-100%); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 .navbar-brand {
   font-weight: 800;
@@ -142,16 +147,24 @@ body::after {
 .menu-fab:hover { background: var(--primary-bg-hover); }
 .menu-fab-bar { display: block; width: 100%; height: 2.5px; background: var(--primary-color); border-radius: 2px; }
 
-/* ===== Overlay + Drawer (Glass) ===== */
+/* ===== Overlay + Drawer (Glass + Luxury) ===== */
 .menu-overlay {
   position: fixed; inset: 0; z-index: 1055;
-  background: rgba(0, 0, 0, 0.2);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
   opacity: 0; pointer-events: none;
-  transition: opacity .28s ease;
+  transition: opacity .35s cubic-bezier(.22,.61,.36,1),
+              background .35s ease,
+              backdrop-filter .4s ease,
+              -webkit-backdrop-filter .4s ease;
 }
-.menu-overlay.show { opacity: 1; pointer-events: auto; overflow: hidden; }
+.menu-overlay.show {
+  opacity: 1; pointer-events: auto; overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
 
 .menu-drawer {
   position: absolute; top: 0; left: 0;
@@ -161,16 +174,56 @@ body::after {
   backdrop-filter: blur(24px);
   border-right: 1px solid var(--glass-border);
   padding: 80px 20px 20px;
-  transform: translateX(-100%);
-  transition: transform var(--ease-fast), box-shadow var(--ease-fast);
+  transform: translateX(-105%) scale(.95);
+  transition: transform .4s cubic-bezier(.22,.61,.36,1),
+              box-shadow .4s ease,
+              filter .3s ease;
   display: flex; flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-shadow: 0 0 0 rgba(0,0,0,0);
+  filter: blur(2px);
 }
 .menu-overlay.show .menu-drawer {
-  transform: translateX(0);
-  box-shadow: 16px 0 48px rgba(102, 126, 234, 0.12), 4px 0 12px rgba(0,0,0,.06);
+  transform: translateX(0) scale(1);
+  box-shadow: 20px 0 60px rgba(102, 126, 234, 0.18), 8px 0 20px rgba(0,0,0,.08);
+  filter: blur(0);
+}
+
+/* Sidebar items stagger animation */
+.menu-overlay.show .menu-section,
+.menu-overlay.show .menu-list > li,
+.menu-overlay.show .menu-header,
+.menu-overlay.show hr,
+.menu-overlay.show .d-flex.align-items-center.gap-3 {
+  animation: sidebarItemIn .4s cubic-bezier(.22,.61,.36,1) both;
+}
+.menu-overlay.show .menu-header       { animation-delay: .05s; }
+.menu-overlay.show .menu-section:nth-of-type(1) { animation-delay: .08s; }
+.menu-overlay.show .menu-list:nth-of-type(1) > li:nth-child(1) { animation-delay: .1s; }
+.menu-overlay.show .menu-section:nth-of-type(2) { animation-delay: .12s; }
+.menu-overlay.show .menu-list:nth-of-type(2) > li:nth-child(1) { animation-delay: .14s; }
+.menu-overlay.show .menu-section:nth-of-type(3) { animation-delay: .16s; }
+.menu-overlay.show .menu-list:nth-of-type(3) > li:nth-child(1) { animation-delay: .18s; }
+.menu-overlay.show .menu-section:nth-of-type(4) { animation-delay: .2s; }
+.menu-overlay.show .menu-list:nth-of-type(4) > li:nth-child(1) { animation-delay: .22s; }
+.menu-overlay.show .menu-section:nth-of-type(5) { animation-delay: .24s; }
+.menu-overlay.show .menu-list:nth-of-type(5) > li:nth-child(1) { animation-delay: .26s; }
+.menu-overlay.show hr { animation-delay: .3s; }
+.menu-overlay.show .d-flex.align-items-center.gap-3 { animation-delay: .34s; }
+
+@keyframes sidebarItemIn {
+  from { opacity: 0; transform: translateX(-16px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateX(0); filter: blur(0); }
+}
+
+/* Reset when closed */
+.menu-overlay:not(.show) .menu-section,
+.menu-overlay:not(.show) .menu-list > li,
+.menu-overlay:not(.show) .menu-header,
+.menu-overlay:not(.show) hr,
+.menu-overlay:not(.show) .d-flex.align-items-center.gap-3 {
+  opacity: 0;
 }
 
 /* ===== Drawer Header ===== */
@@ -198,7 +251,8 @@ body::after {
 .menu-link:hover {
   background: var(--primary-bg-hover);
   color: var(--primary-color);
-  transform: translateX(4px);
+  transform: translateX(6px);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, .1);
 }
 .menu-link:focus-visible {
   outline: 0;
@@ -377,6 +431,25 @@ main h2 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ===== Page Transition ===== */
+body.page-exit {
+  animation: pageExit .35s cubic-bezier(.55,.06,.68,.19) both;
+  pointer-events: none;
+}
+@keyframes pageExit {
+  0%   { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(.98); filter: blur(6px); }
+}
+
+/* Main content entrance */
+main {
+  animation: contentEnter .6s cubic-bezier(.22,.61,.36,1) .15s both;
+}
+@keyframes contentEnter {
+  from { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
 /* ===== Responsive ===== */

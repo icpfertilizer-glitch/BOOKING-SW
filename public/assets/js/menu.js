@@ -1,84 +1,101 @@
 // menu.js — โหลด navbar + sidebar จาก partials แล้วผูก events
-(() => {
-  async function loadPartials() {
-    const navPlaceholder = document.getElementById('navbar-placeholder');
-    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
-
-    if (navPlaceholder) {
-      try {
-        const res = await fetch('partials/navbar.html');
-        if (res.ok) navPlaceholder.outerHTML = await res.text();
-      } catch(_) {}
-    }
-
-    if (sidebarPlaceholder) {
-      try {
-        const res = await fetch('partials/sidebar.html');
-        if (res.ok) sidebarPlaceholder.outerHTML = await res.text();
-      } catch(_) {}
-    }
+// window.__menuReady เป็น Promise ที่หน้าอื่นสามารถ await ได้
+window.__menuReady = (async () => {
+  // รอ DOM พร้อม
+  if (document.readyState === 'loading') {
+    await new Promise(r => document.addEventListener('DOMContentLoaded', r));
   }
 
-  function initMenu() {
-    const menuBtn   = document.getElementById('menuFab');
-    const menuClose = document.getElementById('menuClose');
-    const menuOv    = document.getElementById('menuOverlay');
+  // โหลด partials
+  const navPlaceholder = document.getElementById('navbar-placeholder');
+  const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
 
-    const topUserEl = document.getElementById('userDisplayName');
-    const sideUserEl = document.getElementById('menuUserName');
-    const avatarEl = document.querySelector('.avatar-circle');
+  if (navPlaceholder) {
+    try {
+      const res = await fetch('partials/navbar.html');
+      if (res.ok) navPlaceholder.outerHTML = await res.text();
+      else console.warn('[menu.js] navbar partial failed:', res.status);
+    } catch(e) { console.warn('[menu.js] navbar fetch error:', e); }
+  }
 
-    function syncUserName() {
-      if (!sideUserEl) return;
-      const name = (topUserEl?.textContent || '').trim();
-      const display = name || 'ผู้ใช้';
-      sideUserEl.textContent = display;
-      if (avatarEl) avatarEl.textContent = display.charAt(0).toUpperCase();
-    }
+  if (sidebarPlaceholder) {
+    try {
+      const res = await fetch('partials/sidebar.html');
+      if (res.ok) sidebarPlaceholder.outerHTML = await res.text();
+      else console.warn('[menu.js] sidebar partial failed:', res.status);
+    } catch(e) { console.warn('[menu.js] sidebar fetch error:', e); }
+  }
 
-    function openMenu() {
-      if (!menuOv) return;
-      menuOv.classList.add('show');
-      document.documentElement.style.overflow = 'hidden';
-      syncUserName();
-    }
+  // ผูก events หลังโหลดเสร็จ
+  const menuBtn   = document.getElementById('menuFab');
+  const menuClose = document.getElementById('menuClose');
+  const menuOv    = document.getElementById('menuOverlay');
+  const topUserEl = document.getElementById('userDisplayName');
+  const sideUserEl = document.getElementById('menuUserName');
+  const avatarEl = document.querySelector('.avatar-circle');
 
-    function closeMenu() {
-      if (!menuOv) return;
-      menuOv.classList.remove('show');
-      document.documentElement.style.overflow = '';
-    }
+  function syncUserName() {
+    if (!sideUserEl) return;
+    const name = (topUserEl?.textContent || '').trim();
+    const display = name || 'ผู้ใช้';
+    sideUserEl.textContent = display;
+    if (avatarEl) avatarEl.textContent = display.charAt(0).toUpperCase();
+  }
 
-    menuBtn?.addEventListener('click', openMenu);
-    menuClose?.addEventListener('click', closeMenu);
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeMenu();
-    });
-
-    menuOv?.addEventListener('click', (e) => {
-      if (!e.target.closest('.menu-drawer')) closeMenu();
-    });
-
-    // dropdown ภายในเมนู
-    document.querySelectorAll('.menu-dropdown > .menu-link').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const parent = btn.closest('.menu-dropdown');
-        parent?.classList.toggle('open');
-      });
-    });
-
-    // MutationObserver สำหรับ sync ชื่อ
-    if (topUserEl) {
-      const obs = new MutationObserver(syncUserName);
-      obs.observe(topUserEl, { characterData: true, childList: true, subtree: true });
-    }
-
+  function openMenu() {
+    if (!menuOv) return;
+    menuOv.classList.add('show');
+    document.documentElement.style.overflow = 'hidden';
     syncUserName();
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    await loadPartials();
-    initMenu();
+  function closeMenu() {
+    if (!menuOv) return;
+    menuOv.classList.remove('show');
+    document.documentElement.style.overflow = '';
+  }
+
+  menuBtn?.addEventListener('click', openMenu);
+  menuClose?.addEventListener('click', closeMenu);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  menuOv?.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-drawer')) closeMenu();
+  });
+
+  // dropdown ภายในเมนู
+  document.querySelectorAll('.menu-dropdown > .menu-link').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.closest('.menu-dropdown')?.classList.toggle('open');
+    });
+  });
+
+  if (topUserEl) {
+    const obs = new MutationObserver(syncUserName);
+    obs.observe(topUserEl, { characterData: true, childList: true, subtree: true });
+  }
+
+  syncUserName();
+
+  // ===== Page transition: intercept menu links =====
+  document.querySelectorAll('a.menu-link[href], .navbar a[href]').forEach(link => {
+    const href = link.getAttribute('href');
+    // ข้ามลิงก์ที่เป็น # หรือ javascript: หรือ dropdown button
+    if (!href || href === '#' || href.startsWith('javascript:') || link.closest('.menu-dropdown > .menu-link')) return;
+
+    link.addEventListener('click', (e) => {
+      // ถ้าเป็นหน้าเดียวกันไม่ต้อง animate
+      const current = location.pathname.split('/').pop().replace(/\.html$/, '');
+      const target = href.replace(/\.html$/, '');
+      if (current === target) return;
+
+      e.preventDefault();
+      closeMenu();
+      document.body.classList.add('page-exit');
+      setTimeout(() => { window.location.href = href; }, 300);
+    });
   });
 })();

@@ -43,18 +43,26 @@ export function initAuthGuard(onAuthenticated) {
       window.location.href = 'index.html';
       return;
     }
+
+    // รอให้ menu.js โหลด partials เสร็จก่อน (ถ้ามี)
+    if (window.__menuReady) {
+      await window.__menuReady;
+    }
+
     const { name, role } = await getUserData(user.uid);
     window.currentUser = { user, role, name };
     applyUserDisplay(name);
     applyRoleToUI(role);
+
+    const btnLogout = $('#btnLogout');
+    if (btnLogout && !btnLogout._bound) {
+      btnLogout._bound = true;
+      btnLogout.addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+    }
+
     if (onAuthenticated) onAuthenticated(user, name, role);
   });
-
-  const btnLogout = $('#btnLogout');
-  if (btnLogout) {
-    btnLogout.addEventListener('click', async () => {
-      await signOut(auth);
-      window.location.href = 'index.html';
-    });
-  }
 }

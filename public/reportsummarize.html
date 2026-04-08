@@ -15,6 +15,32 @@
     .card { border:0; box-shadow: 0 10px 28px rgba(0,0,0,.08); border-radius:16px; padding:16px; margin-bottom:16px; }
     .summary-card { min-width: 160px; }
     .table-responsive { max-height: 500px; overflow-y: auto; }
+
+    /* Pagination transition — luxury stagger */
+    #bookingsTable tbody tr {
+      opacity: 0;
+      transform: translateY(12px) scale(.98);
+      filter: blur(2px);
+    }
+    #bookingsTable tbody tr.row-enter {
+      animation: rowSlideIn .4s cubic-bezier(.22,.61,.36,1) forwards;
+    }
+    #bookingsTable tbody.rows-exit tr {
+      animation: rowSlideOut .2s cubic-bezier(.55,.06,.68,.19) forwards;
+    }
+    @keyframes rowSlideIn {
+      0%   { opacity: 0; transform: translateY(14px) scale(.97); filter: blur(3px); }
+      60%  { filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes rowSlideOut {
+      0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      100% { opacity: 0; transform: translateY(-8px) scale(.97); filter: blur(2px); }
+    }
+
+    /* Pagination buttons */
+    #tablePagination .btn { transition: all .2s ease; }
+    #tablePagination .btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
   </style>
 </head>
 <body>
@@ -211,17 +237,22 @@
         options: { plugins: { legend: { position: 'bottom' } } }
       });
     }
-    // --- Render Table (paginated) ---
-    function renderTable() {
+    // --- Render Table (paginated with stagger animation) ---
+    function renderTable(animate = true) {
       bookingsTableBody.innerHTML = '';
       const start = tablePage * TABLE_PAGE_SIZE;
       const end = Math.min(start + TABLE_PAGE_SIZE, bookings.length);
       const pageData = bookings.slice(start, end);
 
       if (pageData.length === 0) {
-        bookingsTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-secondary py-3">ไม่พบข้อมูล</td></tr>';
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="7" class="text-center text-secondary py-3">ไม่พบข้อมูล</td>';
+        tr.style.opacity = '1';
+        tr.style.transform = 'none';
+        tr.style.filter = 'none';
+        bookingsTableBody.appendChild(tr);
       } else {
-        pageData.forEach(b => {
+        pageData.forEach((b, i) => {
           const tr = document.createElement('tr');
           const fields = [
             b.date || '',
@@ -238,6 +269,15 @@
             tr.appendChild(td);
           });
           bookingsTableBody.appendChild(tr);
+
+          if (animate) {
+            // stagger: แต่ละแถวเริ่ม animation ห่างกัน 25ms
+            setTimeout(() => tr.classList.add('row-enter'), i * 25);
+          } else {
+            tr.style.opacity = '1';
+            tr.style.transform = 'none';
+            tr.style.filter = 'none';
+          }
         });
       }
 
@@ -266,9 +306,20 @@
         </div>
       `;
 
-      document.getElementById('pgPrev')?.addEventListener('click', () => { if (tablePage > 0) { tablePage--; renderTable(); } });
-      document.getElementById('pgNext')?.addEventListener('click', () => { if (tablePage < totalPages - 1) { tablePage++; renderTable(); } });
+      document.getElementById('pgPrev')?.addEventListener('click', () => { if (tablePage > 0) { tablePage--; animatePageChange(); } });
+      document.getElementById('pgNext')?.addEventListener('click', () => { if (tablePage < totalPages - 1) { tablePage++; animatePageChange(); } });
     }
+    function animatePageChange() {
+      const tbody = $('#bookingsTable tbody');
+      // Exit: เล่น slide-out ทุกแถวพร้อมกัน
+      tbody.classList.add('rows-exit');
+      setTimeout(() => {
+        tbody.classList.remove('rows-exit');
+        // Enter: render ใหม่พร้อม stagger animation
+        renderTable(true);
+      }, 220);
+    }
+
     // --- Export Excel (.xlsx) ---
     $('#btnExport').addEventListener('click', () => {
     // สร้างข้อมูลจาก bookingsTable โดยตรง (ภาษาไทย)
