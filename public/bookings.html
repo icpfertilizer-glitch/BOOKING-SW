@@ -14,8 +14,7 @@
   <link href="assets/css/styles.css" rel="stylesheet" />
   <script src="assets/js/menu.js" defer></script>
 
-  <!-- FullCalendar -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css" rel="stylesheet">
+  <!-- FullCalendar (v6 bundles CSS in JS, no separate CSS file needed) -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
@@ -171,6 +170,31 @@
 
     .fc .fc-button {
       border-radius: 12px;
+    }
+
+    /* Fix FullCalendar chevron icons — replace broken font icons with CSS arrows */
+    .fc .fc-button .fc-icon {
+      font-size: 0 !important;    /* ซ่อนตัวอักษรเดิมที่เป็นสี่เหลี่ยม */
+      position: relative;
+      width: 1em;
+      height: 1em;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .fc .fc-button .fc-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 8px; height: 8px;
+      border-top: 2.5px solid currentColor;
+      border-right: 2.5px solid currentColor;
+      transform-origin: center center;
+    }
+    .fc .fc-button .fc-icon-chevron-left::after {
+      transform: translate(-30%, -50%) rotate(-135deg);
+    }
+    .fc .fc-button .fc-icon-chevron-right::after {
+      transform: translate(-70%, -50%) rotate(45deg);
     }
 
     .fc .fc-button-primary:focus {

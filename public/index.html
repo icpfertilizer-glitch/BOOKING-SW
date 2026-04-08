@@ -313,9 +313,19 @@ import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gsta
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { auth, db } from "./assets/js/firebase-config.js";
 
-// --- Redirect ถ้า login แล้ว ---
-onAuthStateChanged(auth, (user) => {
-  if (user) { window.location.href = 'bookings.html'; return; }
+// --- Redirect ถ้า login แล้ว (เฉพาะตอนโหลดหน้าครั้งแรก) ---
+let isInitialCheck = true;
+onAuthStateChanged(auth, async (user) => {
+  if (!isInitialCheck) return;
+  isInitialCheck = false;
+  if (user) {
+    // เช็ค role ก่อน redirect — ไม่ redirect ถ้าถูกระงับ
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists() && snap.data().role === 'No Access') return;
+    } catch(_) {}
+    window.location.href = 'bookings.html';
+  }
 });
 
 // --- รอจน DOM โหลดเสร็จ ---
