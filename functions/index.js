@@ -5,6 +5,12 @@ const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 initializeApp();
 const db = getFirestore();
 
+// Shared helper: check if two time ranges overlap
+const TIME_RE = /^\d{2}:\d{2}$/;
+function isOverlapping(s1, e1, s2, e2) {
+  return s1 < e2 && s2 < e1;
+}
+
 /**
  * Atomic booking creation with server-side overlap check.
  * Uses Firestore transaction to guarantee no double-booking.
@@ -24,18 +30,12 @@ exports.createBooking = onCall({ region: "asia-southeast1" }, async (request) =>
   }
 
   // Validate time format (HH:MM)
-  const timeRe = /^\d{2}:\d{2}$/;
-  if (!timeRe.test(start) || !timeRe.test(end)) {
+  if (!TIME_RE.test(start) || !TIME_RE.test(end)) {
     throw new HttpsError("invalid-argument", "รูปแบบเวลาไม่ถูกต้อง");
   }
 
   if (start >= end) {
     throw new HttpsError("invalid-argument", "เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด");
-  }
-
-  // Helper: check if two time ranges overlap
-  function isOverlapping(s1, e1, s2, e2) {
-    return s1 < e2 && s2 < e1;
   }
 
   try {
@@ -103,12 +103,12 @@ exports.updateBooking = onCall({ region: "asia-southeast1" }, async (request) =>
     throw new HttpsError("invalid-argument", "ข้อมูลไม่ครบ");
   }
 
-  if (start >= end) {
-    throw new HttpsError("invalid-argument", "เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด");
+  if (!TIME_RE.test(start) || !TIME_RE.test(end)) {
+    throw new HttpsError("invalid-argument", "รูปแบบเวลาไม่ถูกต้อง");
   }
 
-  function isOverlapping(s1, e1, s2, e2) {
-    return s1 < e2 && s2 < e1;
+  if (start >= end) {
+    throw new HttpsError("invalid-argument", "เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด");
   }
 
   try {
@@ -125,8 +125,8 @@ exports.updateBooking = onCall({ region: "asia-southeast1" }, async (request) =>
 
       // Check permission: owner or admin
       const userSnap = await transaction.get(db.collection("users").doc(uid));
-      const userRole = userSnap.exists ? userSnap.data().role : "";
-      if (existing.userId !== uid && userRole !== "Admin") {
+      const userRole = userSnap.exists ? (userSnap.data().role || "").toLowerCase() : "";
+      if (existing.userId !== uid && userRole !== "admin") {
         throw new HttpsError("permission-denied", "คุณไม่มีสิทธิ์แก้ไขรายการนี้");
       }
 
