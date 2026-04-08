@@ -944,11 +944,17 @@
   <script type="module">
     import {
       collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy,
-      serverTimestamp, doc, getDoc, where, getDocs, runTransaction
+      serverTimestamp, doc, getDoc, where, getDocs
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-    import { db } from "./assets/js/firebase-config.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js";
+    import { db, app } from "./assets/js/firebase-config.js";
     import { initAuthGuard } from "./assets/js/auth-guard.js";
     import { escapeHTML, $ } from "./assets/js/utils.js";
+
+    // Cloud Functions
+    const functions = getFunctions(app, "asia-southeast1");
+    const createBookingFn = httpsCallable(functions, "createBooking");
+    const updateBookingFn = httpsCallable(functions, "updateBooking");
 
     // ---- UI helpers ----
     let toast;
@@ -1750,51 +1756,19 @@
         showPopup('กรุณากรอกข้อมูลให้ครบ'); return;
       }
 
-      // ✅ เช็คสิทธิ์ตอนบันทึก (แก้ไขได้เฉพาะผู้จองหรือแอดมิน)
-      if (id && editingMeeting) {
-        const canEdit = (currentUser.role === 'admin' || currentUser.user.uid === editingMeeting.userId);
-        if (!canEdit) { showPopup('คุณไม่มีสิทธิ์แก้ไขรายการนี้'); return; }
-      }
-
       try {
-        const payload = {
+        const bookingData = {
           roomId, roomName, date: dateStr, start, end, title, contact,
-          bookerName: booker || currentUser.name,
-          updatedAt: serverTimestamp()
+          bookerName: booker || currentUser.name
         };
 
         if (id) {
-          // Edit mode: overlap check + update in transaction
-          if (editingMeeting) {
-            payload.userId = editingMeeting.userId;
-            payload.userName = editingMeeting.userName;
-          } else {
-            payload.userId = currentUser.user.uid;
-            payload.userName = currentUser.name;
-          }
-          // Check overlap before update
-          const overlap = await hasOverlap(dateStr, roomId, start, end, id);
-          if (overlap) { showPopup('ไม่สามารถบันทึกได้: ช่วงเวลานี้ถูกจองแล้วสำหรับห้องนี้'); return; }
-          await updateDoc(doc(db, 'meetings', id), payload);
+          // Edit mode: atomic overlap check + update via Cloud Function
+          await updateBookingFn({ ...bookingData, bookingId: id });
           showToast('อัปเดตการจองแล้ว');
         } else {
-          // Create mode: atomic overlap check + write via transaction
-          payload.userId = currentUser.user.uid;
-          payload.userName = currentUser.name;
-          payload.createdAt = serverTimestamp();
-
-          const newDocRef = doc(collection(db, 'meetings'));
-          await runTransaction(db, async (transaction) => {
-            // Read all meetings on the same date atomically
-            const qDay = query(meetingsRef, where('date', '==', dateStr));
-            const snap = await getDocs(qDay);
-            const conflict = snap.docs
-              .map(d => ({ id: d.id, ...d.data() }))
-              .filter(x => x.roomId === roomId)
-              .some(m => isOverlapping(start, end, m.start, m.end));
-            if (conflict) throw new Error('OVERLAP');
-            transaction.set(newDocRef, payload);
-          });
+          // Create mode: atomic overlap check + write via Cloud Function
+          await createBookingFn(bookingData);
           showToast('จองสำเร็จ');
         }
         modal.hide();
@@ -1805,11 +1779,15 @@
           renderStatusPanelByRoom();
         }, 1000);
       } catch (err) {
-        if (err.message === 'OVERLAP') {
+        const code = err?.code || '';
+        const msg = err?.message || '';
+        if (code === 'functions/already-exists' || msg.includes('ถูกจองแล้ว')) {
           showPopup('ไม่สามารถบันทึกได้: ช่วงเวลานี้ถูกจองแล้วสำหรับห้องนี้');
+        } else if (code === 'functions/permission-denied') {
+          showPopup('คุณไม่มีสิทธิ์แก้ไขรายการนี้');
         } else {
           console.error(err);
-          showPopup('บันทึกไม่สำเร็จ: ' + (err.message || ''));
+          showPopup('บันทึกไม่สำเร็จ: ' + (msg || ''));
         }
       }
     });
